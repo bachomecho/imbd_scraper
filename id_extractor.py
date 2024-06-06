@@ -1,10 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
 
-urls = ['https://www.imdb.com/list/ls563851203/']
-
-def get_playlist(urls: list[str], user_agent: str):
-    res = requests.get(urls[0], headers={'User-Agent': user_agent})
+def get_playlist(url: str, user_agent: str):
+    res = requests.get(url, headers={'User-Agent': user_agent})
     if res.status_code == 200:
         return res.text
     else:
