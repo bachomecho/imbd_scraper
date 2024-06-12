@@ -1,9 +1,14 @@
 from imdb import Cinemagoer
 import json
 import argparse
+from id_extractor import get_playlist, parse_playlist_for_ids
 import os
+from dotenv import load_dotenv
+import deepl
 
-# TODO: set up testing
+load_dotenv('.env')
+translator = deepl.Translator(os.getenv("DEEPL_API_KEY"))
+
 class Movie:
     def __init__(
         self,
@@ -39,11 +44,12 @@ class Movie:
     def get_info(self) -> dict:
         return {
             'title': self._parse_bulgarian_title(self.titles),
-            'director': self.director,
+            'director': translator.translate_text(self.director, target_lang="BG").text,
             'duration': self.duration,
             'release_year': self.release_year,
             'genre': self.genre,
-            'plot': self.plot,
+            'duration': self.duration,
+            'plot': translator.translate_text(self.plot, target_lang="BG").text,
         }
 
 
@@ -62,11 +68,6 @@ def main():
         movie_ids: list[int] = args.list.split(',')
     elif args.playlist:
         # link to playlist https://www.imdb.com/list/ls563851203/
-        from id_extractor import get_playlist, parse_playlist_for_ids
-        import os
-        from dotenv import load_dotenv
-
-        load_dotenv('.env')
         movie_ids = parse_playlist_for_ids(get_playlist(args.playlist, os.getenv('USER_AGENT')))
     elif args.file:
         if '.txt' not in args.file: args.file = args.file + '.txt'
@@ -77,10 +78,8 @@ def main():
     ia = Cinemagoer()
 
     extracted_movies = []
-    count = 0
 
     for movie_id in movie_ids:
-        if count <= 2:
             try:
                 movie = ia.get_movie_main(movie_id)['data']
                 movie_obj = Movie(
@@ -94,11 +93,10 @@ def main():
                 print('Information from following movies is being extracted: \n')
                 print(f'{movie_id}: {repr(movie_obj)}')
                 extracted_movies.append(movie_obj.get_info())
-                count += 1
             except KeyError:
                 continue
 
-    output_path = 'res.json'
+    output_path = 'movies.json'
     if args.output:
         assert os.path.isabs(args.output) and os.path.isdir(args.output), 'Provided destination path is not absolute or does not exist.'
         output_path = os.path.join(args.output, output_path)
