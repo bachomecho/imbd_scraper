@@ -56,20 +56,24 @@ class Movie:
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Extract information about movies from IMDb')
+    parser.add_argument('-i', '--individual', help='Provide the imdb to an individual movie.')
     parser.add_argument('-l', '--list', help='Provide a list of movie ids')
     parser.add_argument('-f', '--file', help='Provide a file containing a list of movie ids')
     parser.add_argument('-p', '--playlist', help='Provide a list of movie ids')
     parser.add_argument('-o', '--output', help='Provide an absolute path to an output directory', required=False)
     args = parser.parse_args()
 
-    assert (args.list or args.playlist or args.file), 'No arguments provided on the command line.'
+    DB_KEYS = ['title', 'thumbnail_name', 'video_id', 'duration', 'release_year', 'genre', 'director', 'plot']
 
-    movie_ids = []
-    if args.list:
-        movie_ids: list[int] = args.list.split(',')
-    elif args.playlist:
-        # link to playlist https://www.imdb.com/list/ls563851203/
+    assert (args.list or args.playlist or args.file or args.individual), 'No arguments provided on the command line.'
+
+    movie_ids: list[int] = []
+    if args.individual:
+        movie_ids.append(args.individual.split('tt')[-1].strip('/'))
+    elif args.list:
+        movie_ids = args.list.split(',')
+    elif args.playlist: # link to playlist https://www.imdb.com/list/ls563851203/
         movie_ids = parse_playlist_for_ids(get_playlist(args.playlist, os.getenv('USER_AGENT')))
     elif args.file:
         if '.txt' not in args.file: args.file = args.file + '.txt'
