@@ -5,6 +5,10 @@ from id_extractor import get_playlist, parse_playlist_for_ids
 import os
 from dotenv import load_dotenv
 import deepl
+from datetime import datetime
+from typing import Literal
+import sqlite3
+from db_handler import *
 
 load_dotenv('.env')
 translator = deepl.Translator(os.getenv("DEEPL_API_KEY"))
@@ -38,14 +42,19 @@ class Movie:
             plot={self.plot},
         )"""
 
-    def _parse_bulgarian_title(self, titles: list[str]) -> str:
-        for title in titles:
-            if 'bulgaria' in title.lower():
+    def _parse_title(self, lang: Literal['bulgarian', 'english']) -> str:
+        for title in self.titles:
+            if lang in title.lower():
                 return title.split('(')[0].strip()
+
+
+    def _generate_thumbnail_name(self):
+        return f"{self._parse_title('english').replace(' ', '_').lower()}_{self.duration}_{self.release_year}"
 
     def get_info(self) -> dict:
         return {
-            'title': self._parse_bulgarian_title(self.titles),
+            'title': self._parse_title('bulgarian'),
+            'thumbnail_name': self._generate_thumbnail_name(),
             'director': translator.translate_text(self.director, target_lang="BG").text,
             'duration': self.duration,
             'release_year': self.release_year,
