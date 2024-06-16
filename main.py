@@ -25,7 +25,7 @@ class Movie:
     ) -> None:
         self.titles = titles
         self.director = director[0]['name']
-        if len(self.director) > 2:
+        if len(self.director.split()) > 2:
             self.director = " ".join(self.director.split()[1:])
         self.duration = duration[0]
         self.release_year = release_year
