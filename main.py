@@ -1,13 +1,10 @@
 from imdb import Cinemagoer
-import json
-import argparse
+import argparse, os, sys, json, sqlite3
 from id_extractor import get_playlist, parse_playlist_for_ids
-import os
 from dotenv import load_dotenv
 import deepl
 from datetime import datetime
 from typing import Literal
-import sqlite3
 from db_handler import *
 
 load_dotenv('.env')
@@ -27,7 +24,7 @@ class Movie:
         self.director = director[0]['name']
         if len(self.director.split()) > 2:
             self.director = " ".join(self.director.split()[1:])
-        self.duration = duration[0]
+        self.duration = int(duration[0])
         self.release_year = release_year
         self.genre = genre
         self.plot = plot
@@ -55,11 +52,12 @@ class Movie:
         return {
             'title': self._parse_title('bulgarian'),
             'thumbnail_name': self._generate_thumbnail_name(),
-            'director': translator.translate_text(self.director, target_lang="BG").text,
+            'video_id': None,
+            'multi_part': False,
             'duration': self.duration,
             'release_year': self.release_year,
-            'genre': self.genre,
-            'duration': self.duration,
+            'genre': translator.translate_text(','.join(self.genre), target_lang="BG").text,
+            'director': translator.translate_text(self.director, target_lang="BG").text,
             'plot': translator.translate_text(self.plot, target_lang="BG").text,
         }
 
@@ -73,7 +71,8 @@ def main():
     parser.add_argument('-o', '--output', help='Provide an absolute path to an output directory', required=False)
     args = parser.parse_args()
 
-    DB_KEYS = ['title', 'thumbnail_name', 'video_id', 'duration', 'release_year', 'genre', 'director', 'plot']
+    DB_KEYS = ['title', 'thumbnail_name', 'video_id', 'multi_part', 'duration', 'release_year', 'genre', 'director', 'plot']
+
 
     assert (args.list or args.playlist or args.file or args.individual), 'No arguments provided on the command line.'
 
