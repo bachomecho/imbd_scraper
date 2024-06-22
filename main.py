@@ -118,7 +118,20 @@ def main():
 
 
     ia = Cinemagoer()
-
+    create_table_query = """
+    CREATE TABLE IF NOT EXISTS movies (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        thumbnail_name TEXT,
+        video_id TEXT,
+        duration INTEGER,
+        release_year INTEGER,
+        genre TEXT,
+        director TEXT,
+        plot TEXT
+    )
+    """
+    cur.execute(create_table_query)
     extracted_movies = []
 
     for movie_id in movie_ids:
