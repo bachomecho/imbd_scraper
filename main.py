@@ -74,6 +74,7 @@ def view_current_state(cur: sqlite3.Cursor, keys: list[str]):
 
 def main():
     parser = argparse.ArgumentParser(description='Extract information about movies from IMDb')
+    parser.add_argument('-path', '--path', help='Provide path to the sqlite3 database that you want to interact with.')
     parser.add_argument('-i', '--individual', help='Provide the imdb to an individual movie.')
     parser.add_argument('-l', '--list', help='Provide a list of movie ids')
     parser.add_argument('-f', '--file', help='Provide a file containing a list of movie ids')
@@ -85,7 +86,20 @@ def main():
     DB_KEYS = ['title', 'thumbnail_name', 'video_id', 'multi_part', 'duration', 'release_year', 'genre', 'director', 'plot']
 
 
-    assert (args.list or args.playlist or args.file or args.individual), 'No arguments provided on the command line.'
+    assert (args.list or args.playlist or args.file or args.individual or args.current_state), 'No arguments provided on the command line.'
+    assert args.path, 'No path to/for a database has been provided.'
+    assert os.path.isabs(args.path), 'The path to the database is not absolute.'
+
+    if os.path.isfile(args.path):
+        print('Specified path points to a file that already exists.') # this is done in order for parsed movies to not be unnecessarily appended to an existing db
+        append_to_existing_database = input('Do you want to append to already existing database? [y/n]')
+        if append_to_existing_database == 'n':
+            create_new_db = input('Do you want to create a new database? [y/n]')
+            if create_new_db == 'y':
+                os.unlink(args.path)
+
+    con = sqlite3.connect(args.path)
+    cur = con.cursor()
 
     movie_ids: list[int] = []
     if args.individual:
