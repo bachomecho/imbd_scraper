@@ -156,13 +156,24 @@ def main():
             except (KeyError, AttributeError):
                 continue
 
-    output_path = 'movies.json'
-    if args.output:
-        assert os.path.isabs(args.output) and os.path.isdir(args.output), 'Provided destination path is not absolute or does not exist.'
-        output_path = os.path.join(args.output, output_path)
+    print('Movies that will be added into the database.', extracted_movies)
+    add_movies = input('Do you want to add them? [y/n]')
+    if add_movies == 'y':
+        insert_query = f"""
+        INSERT OR IGNORE INTO movies (
+            {",".join(DB_KEYS)}
+        ) VALUES ({"".join([f':{name},' for name in DB_KEYS]).strip(',')})
+        """
 
-    with open(output_path, 'w') as output_file:
-        json.dump(extracted_movies, output_file)
+        cur.executemany(insert_query, extracted_movies)
+        con.commit()
+        print(f'[+] {len(extracted_movies)} movies have been added to movies table in {args.path}')
+
+    inquire_current_db_state = input('Do you want to see current db state [y/n]: ')
+    if inquire_current_db_state == 'y':
+        view_current_state(cur, DB_KEYS)
+
+    con.close()
 
 if __name__ == '__main__':
     main()
