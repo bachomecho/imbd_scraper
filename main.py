@@ -132,6 +132,8 @@ def main():
     )
     """
     cur.execute(create_table_query)
+
+    current_database_state = titles_currently_present(cur)
     extracted_movies = []
 
     for movie_id in movie_ids:
@@ -147,8 +149,11 @@ def main():
                 )
                 print('Information from following movies is being extracted: \n')
                 print(f'{movie_id}: {repr(movie_obj)}')
-                extracted_movies.append(movie_obj.get_info())
-            except KeyError:
+
+                movie_info = movie_obj.get_info()
+                print('Movie info: ', movie_info)
+                extracted_movies.append(movie_info) if movie_info['title'] not in current_database_state else print(f'{movie_info["title"]} already exists in database.')
+            except (KeyError, AttributeError):
                 continue
 
     output_path = 'movies.json'
