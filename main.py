@@ -62,6 +62,16 @@ class Movie:
         }
 
 
+def view_current_state(cur: sqlite3.Cursor, keys: list[str]):
+        exec = cur.execute('SELECT * FROM movies')
+        current_db_state = exec.fetchall()
+        print('current db state: \n', current_db_state)
+        data_integrity_check = input('Do you want to update current database state using json? [y/n]')
+        if data_integrity_check == 'y':
+            json_movies = [dict(zip(keys,list(movie[1:])))for movie in current_db_state]
+            with open(f"db_dump_{str(datetime.today().date()).replace('-', '_')}.json", 'w') as out:
+                json.dump(json_movies, out)
+
 def main():
     parser = argparse.ArgumentParser(description='Extract information about movies from IMDb')
     parser.add_argument('-i', '--individual', help='Provide the imdb to an individual movie.')
@@ -69,6 +79,7 @@ def main():
     parser.add_argument('-f', '--file', help='Provide a file containing a list of movie ids')
     parser.add_argument('-p', '--playlist', help='Provide a list of movie ids')
     parser.add_argument('-o', '--output', help='Provide an absolute path to an output directory', required=False)
+    parser.add_argument('-cs', '--current_state', help='When provided shows the current state of the specified database.', required=False)
     args = parser.parse_args()
 
     DB_KEYS = ['title', 'thumbnail_name', 'video_id', 'multi_part', 'duration', 'release_year', 'genre', 'director', 'plot']
@@ -87,6 +98,9 @@ def main():
         if '.txt' not in args.file: args.file = args.file + '.txt'
         with open(args.file, 'r') as file:
             movie_ids = list(map(str.strip, file.readlines()))
+    elif args.current_state == 'yes':
+        view_current_state(cur, DB_KEYS)
+        sys.exit(0)
 
 
     ia = Cinemagoer()
