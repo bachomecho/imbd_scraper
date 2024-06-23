@@ -87,19 +87,26 @@ def main():
 
 
     assert (args.list or args.playlist or args.file or args.individual or args.current_state), 'No arguments provided on the command line.'
-    assert args.path, 'No path to/for a database has been provided.'
-    assert os.path.isabs(args.path), 'The path to the database is not absolute.'
+    if not args.current_state:
+        assert args.path, 'No path to/for a database has been provided.'
+        assert os.path.isabs(args.path), 'The path to the database is not absolute.'
 
-    if os.path.isfile(args.path):
-        print('Specified path points to a file that already exists.') # this is done in order for parsed movies to not be unnecessarily appended to an existing db
-        append_to_existing_database = input('Do you want to append to already existing database? [y/n]')
-        if append_to_existing_database == 'n':
-            create_new_db = input('Do you want to create a new database? If yes, a backup will be created in case you want to revert to previous state. [y/n]')
-            if create_new_db == 'y':
-                shutil.copyfile(args.path, args.path.split('.')[0] + '_backup' + '.db')
-                os.unlink(args.path)
+        if os.path.isfile(args.path):
+            print('Specified path points to a file that already exists.') # this is done in order for parsed movies to not be unnecessarily appended to an existing db
+            append_to_existing_database = input('Do you want to append to already existing database? [y/n]')
+            if append_to_existing_database == 'n':
+                create_new_db = input('Do you want to create a new database? If yes, a backup will be created in case you want to revert to previous state. [y/n]')
+                if create_new_db == 'y':
+                    shutil.copyfile(args.path, args.path.split('.')[0] + '_backup' + '.db')
+                    os.unlink(args.path)
+        con = sqlite3.connect(args.path)
+    else:
+        assert os.path.isabs(args.current_state), 'Argument provided for current state should be an absolute file to a .db file.'
+        con = sqlite3.connect(args.current_state)
 
-    con = sqlite3.connect(args.path)
+    database_path = args.current_state if args.current_state else args.path
+    if con: print(f'[log] Connection to {database_path} has been established.')
+    else: raise ConnectionRefusedError(f'Connection to {database_path} could not be established.')
     cur = con.cursor()
 
     movie_ids: list[int] = []
@@ -113,7 +120,7 @@ def main():
         if '.txt' not in args.file: args.file = args.file + '.txt'
         with open(args.file, 'r') as file:
             movie_ids = list(map(str.strip, file.readlines()))
-    elif args.current_state == 'yes':
+    elif args.current_state:
         view_current_state(cur, DB_KEYS)
         sys.exit(0)
 
