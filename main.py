@@ -1,5 +1,5 @@
 from imdb import Cinemagoer
-import argparse, os, sys, json, sqlite3
+import argparse, os, sys, json, sqlite3, shutil
 from id_extractor import get_playlist, parse_playlist_for_ids
 from dotenv import load_dotenv
 import deepl
@@ -94,8 +94,9 @@ def main():
         print('Specified path points to a file that already exists.') # this is done in order for parsed movies to not be unnecessarily appended to an existing db
         append_to_existing_database = input('Do you want to append to already existing database? [y/n]')
         if append_to_existing_database == 'n':
-            create_new_db = input('Do you want to create a new database? [y/n]')
+            create_new_db = input('Do you want to create a new database? If yes, a backup will be created in case you want to revert to previous state. [y/n]')
             if create_new_db == 'y':
+                shutil.copyfile(args.path, args.path.split('.')[0] + '_backup' + '.db')
                 os.unlink(args.path)
 
     con = sqlite3.connect(args.path)
