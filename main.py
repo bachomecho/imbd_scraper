@@ -115,7 +115,8 @@ def main():
     elif args.file:
         if '.txt' not in args.file: args.file = args.file + '.txt'
         with open(args.file, 'r') as file:
-            movie_ids = list(map(str.strip, file.readlines()))
+            movie_links = list(map(str.strip, file.readlines()))
+            movie_ids = [link.split('tt')[-1].strip('/') for link in movie_links]
     elif args.current_state:
         view_current_state(cur, DB_KEYS)
         sys.exit(0)
