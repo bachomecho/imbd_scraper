@@ -71,12 +71,15 @@ def main():
     parser.add_argument('-p', '--playlist', help='Provide a list of movie ids')
     parser.add_argument('-o', '--output', help='Provide an absolute path to an output directory', required=False)
     parser.add_argument('-cs', '--current_state', help='When provided shows the current state of the specified database.', required=False)
+    parser.add_argument('-ij', '--integrate_json', help='Provide a json_file that you want to insert into a current or new database', required=False)
     args = parser.parse_args()
 
     DB_KEYS = ['title', 'thumbnail_name', 'video_id', 'multi_part', 'duration', 'release_year', 'genre', 'director', 'plot']
 
+    assert (args.list or args.playlist or args.file or args.individual or args.current_state or args.integrate_json), 'No arguments provided on the command line.'
 
-    assert (args.list or args.playlist or args.file or args.individual or args.current_state), 'No arguments provided on the command line.'
+    database_path = args.path if not args.current_state else args.current_state
+
     if not args.current_state:
         assert args.path, 'No path to/for a database has been provided.'
         assert os.path.isabs(args.path), 'The path to the database is not absolute.'
@@ -89,12 +92,15 @@ def main():
                 if create_new_db == 'y':
                     shutil.copyfile(args.path, args.path.split('.')[0] + '_backup' + '.db')
                     os.unlink(args.path)
-        con = sqlite3.connect(args.path)
+        con = sqlite3.connect(database_path)
+    elif args.integrate_json:
+        assert os.path.isabs(args.integrate_json), 'Argument provided for integrate json should be an absolute file to a .json file.'
+        assert args.path, 'No path to/for a database has been provided.'
+        con = sqlite3.connect(database_path)
     else:
         assert os.path.isabs(args.current_state), 'Argument provided for current state should be an absolute file to a .db file.'
-        con = sqlite3.connect(args.current_state)
+        con = sqlite3.connect(database_path)
 
-    database_path = args.current_state if args.current_state else args.path
     if con: print(f'[log] Connection to {database_path} has been established.')
     else: raise ConnectionRefusedError(f'Connection to {database_path} could not be established.')
     cur = con.cursor()
@@ -113,6 +119,10 @@ def main():
     elif args.current_state:
         view_current_state(cur, DB_KEYS)
         sys.exit(0)
+    elif args.integrate_json:
+        insert_json_into_db(con, cur, args.integrate_json)
+        sys.exit(0)
+
 
 
     ia = Cinemagoer()
