@@ -1,11 +1,12 @@
 from imdb import Cinemagoer
 import argparse, os, sys, json, sqlite3, shutil
-from id_extractor import get_playlist, parse_playlist_for_ids
+from utils.utils import get_playlist, parse_playlist_for_ids
 from dotenv import load_dotenv
 import deepl
-from datetime import datetime
 from typing import Literal
-from db_handler import *
+from utils.utils import log, titles_currently_present
+from utils.handle_json import insert_json_into_db, view_current_state
+
 
 load_dotenv('.env')
 translator = deepl.Translator(os.getenv("DEEPL_API_KEY"))
@@ -60,17 +61,6 @@ class Movie:
             'director': translator.translate_text(self.director, target_lang="BG").text,
             'plot': translator.translate_text(self.plot, target_lang="BG").text,
         }
-
-
-def view_current_state(cur: sqlite3.Cursor, keys: list[str]):
-        exec = cur.execute('SELECT * FROM movies')
-        current_db_state = exec.fetchall()
-        print('current db state: \n', current_db_state)
-        data_integrity_check = input('Do you want to update current database state using json? [y/n]')
-        if data_integrity_check == 'y':
-            json_movies = [dict(zip(keys,list(movie[1:])))for movie in current_db_state]
-            with open(f"db_dump_{str(datetime.today().date()).replace('-', '_')}.json", 'w') as out:
-                json.dump(json_movies, out)
 
 def main():
     parser = argparse.ArgumentParser(description='Extract information about movies from IMDb')
