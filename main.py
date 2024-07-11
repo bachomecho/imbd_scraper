@@ -1,5 +1,6 @@
 from imdb import Cinemagoer
-import argparse, os, sys, json, sqlite3, shutil
+import argparse, os, sys, sqlite3, shutil
+import requests
 from utils.utils import get_playlist, parse_playlist_for_ids
 from dotenv import load_dotenv
 import deepl
@@ -48,6 +49,16 @@ class Movie:
 
     def _generate_thumbnail_name(self):
         return f"{self._parse_title('english').replace(' ', '_').lower()}_{self.duration}_{self.release_year}"
+
+    def download_thumbnail(self, url: str):
+        thumbnail_dir = os.getenv('THUMBNAIL_DIR')
+        res = requests.get(url, headers={'User-Agent': os.getenv('USER_AGENT')}, stream=True)
+        if res.status_code == 200:
+            if not os.path.exists(thumbnail_dir):
+                os.makedirs(thumbnail_dir)
+            with open(os.path.join(thumbnail_dir, f'{self._generate_thumbnail_name()}.jpg'), 'wb') as file:
+                shutil.copyfileobj(res.raw, file)
+            del res
 
     def get_info(self) -> dict:
         return {
@@ -161,7 +172,8 @@ def main():
                 print(f'{movie_id}: {repr(movie_obj)}')
 
                 movie_info = movie_obj.get_info()
-                print('Movie info: ', movie_info)
+                movie_obj.download_thumbnail(movie['cover url']) # downloading thumbnail
+                log(movie_info)
                 extracted_movies.append(movie_info) if movie_info['title'] not in current_database_state else print(f'{movie_info["title"]} already exists in database.')
             except (KeyError, AttributeError):
                 continue
