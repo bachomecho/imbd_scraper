@@ -159,6 +159,7 @@ def main():
     current_database_state = titles_currently_present(cur)
     extracted_movies = []
 
+    thumbnail_dir = os.getenv('THUMBNAIL_DIR')
     for movie_id in movie_ids:
             try:
                 movie = ia.get_movie_main(movie_id)['data']
@@ -174,7 +175,8 @@ def main():
                 print(f'{movie_id}: {repr(movie_obj)}')
 
                 movie_info = movie_obj.get_info()
-                movie_obj.download_thumbnail(movie['cover url']) # downloading thumbnail
+
+                movie_obj.download_thumbnail(movie['cover url'], thumbnail_dir) # downloading thumbnail
                 log(movie_info)
                 extracted_movies.append(movie_info) if movie_info['title'] not in current_database_state else print(f'{movie_info["title"]} already exists in database.')
             except (KeyError, AttributeError):
