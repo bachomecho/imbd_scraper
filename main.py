@@ -50,13 +50,15 @@ class Movie:
     def _generate_thumbnail_name(self):
         return f"{self._parse_title('english').replace(' ', '_').lower()}_{self.duration}_{self.release_year}"
 
-    def download_thumbnail(self, url: str):
-        thumbnail_dir = os.getenv('THUMBNAIL_DIR')
+    def download_thumbnail(self, url: str, thumbnail_dir: str):
+        thumbnail_path = os.path.join(thumbnail_dir, f'{self._generate_thumbnail_name()}.jpg')
+        if os.path.exists(thumbnail_path):
+            return
         res = requests.get(url, headers={'User-Agent': os.getenv('USER_AGENT')}, stream=True)
         if res.status_code == 200:
             if not os.path.exists(thumbnail_dir):
                 os.makedirs(thumbnail_dir)
-            with open(os.path.join(thumbnail_dir, f'{self._generate_thumbnail_name()}.jpg'), 'wb') as file:
+            with open(thumbnail_path, 'wb') as file:
                 shutil.copyfileobj(res.raw, file)
             del res
 
