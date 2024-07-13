@@ -161,26 +161,24 @@ def main():
 
     thumbnail_dir = os.getenv('THUMBNAIL_DIR')
     for movie_id in movie_ids:
-            try:
-                movie = ia.get_movie_main(movie_id)['data']
-                movie_obj = Movie(
-                    titles=movie['akas'],
-                    director=movie['director'],
-                    duration=movie['runtimes'],
-                    release_year=movie['year'],
-                    genre=movie['genres'],
-                    plot=movie['plot outline'],
-                )
-                print('Information from following movies is being extracted: \n')
-                print(f'{movie_id}: {repr(movie_obj)}')
-
-                movie_info = movie_obj.get_info()
-
-                movie_obj.download_thumbnail(movie['cover url'], thumbnail_dir) # downloading thumbnail
-                log(movie_info)
-                extracted_movies.append(movie_info) if movie_info['title'] not in current_database_state else print(f'{movie_info["title"]} already exists in database.')
-            except (KeyError, AttributeError):
-                continue
+        try:
+            movie = ia.get_movie_main(movie_id)['data']
+            movie_obj = Movie(
+                titles=movie['akas'],
+                director=movie['director'],
+                duration=movie['runtimes'],
+                release_year=movie['year'],
+                genre=movie['genres'],
+                plot=movie['plot outline'],
+            )
+            print('Information from following movies is being extracted: \n')
+            print(f'{movie_id}: {repr(movie_obj)}')
+            movie_info = movie_obj.get_info()
+            movie_obj.download_thumbnail(movie['cover url'], thumbnail_dir) # downloading thumbnail
+            log(movie_info)
+            extracted_movies.append(movie_info) if movie_info['title'] not in current_database_state else print(f'{movie_info["title"]} already exists in database.')
+        except (KeyError, AttributeError):
+            continue
 
     print('Movies that will be added into the database.', extracted_movies)
     add_movies = input('Do you want to add them? [y/n]')
