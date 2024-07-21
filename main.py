@@ -15,6 +15,7 @@ translator = deepl.Translator(os.getenv("DEEPL_API_KEY"))
 class Movie:
     def __init__(
         self,
+        imdb_id: str,
         titles: list[str],
         director: list[str],
         duration: list[int],
@@ -22,6 +23,7 @@ class Movie:
         genre: list[str],
         plot: str,
     ) -> None:
+        self.imdb_id = imdb_id
         self.titles = titles
         self.director = director[0]['name']
         if len(self.director.split()) > 2:
@@ -33,6 +35,7 @@ class Movie:
 
     def __repr__(self) -> str:
         return f"""Movie: (
+            imdb_id={self.imdb_id},
             titles={self.titles},
             director={self.director},
             duration={self.duration},
@@ -64,6 +67,7 @@ class Movie:
 
     def get_info(self) -> dict:
         return {
+            'imdb_id': self.imdb_id,
             'title': self._parse_title('bulgarian'),
             'thumbnail_name': self._generate_thumbnail_name(),
             'video_id': None,
@@ -87,7 +91,7 @@ def main():
     parser.add_argument('-ij', '--integrate_json', help='Provide a json_file that you want to insert into a current or new database', required=False)
     args = parser.parse_args()
 
-    DB_KEYS = ['title', 'thumbnail_name', 'video_id', 'multi_part', 'duration', 'release_year', 'genre', 'director', 'plot']
+    DB_KEYS = ['imdb_id', 'title', 'thumbnail_name', 'video_id', 'multi_part', 'duration', 'release_year', 'genre', 'director', 'plot']
 
     assert (args.list or args.playlist or args.file or args.individual or args.current_state or args.integrate_json), 'No arguments provided on the command line.'
 
@@ -143,6 +147,7 @@ def main():
     create_table_query = """
     CREATE TABLE IF NOT EXISTS movies (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        imdb_id TEXT UNIQUE,
         title TEXT,
         thumbnail_name TEXT,
         video_id TEXT,
@@ -164,6 +169,7 @@ def main():
         try:
             movie = ia.get_movie_main(movie_id)['data']
             movie_obj = Movie(
+                imdb_id=movie_id,
                 titles=movie['akas'],
                 director=movie['director'],
                 duration=movie['runtimes'],
