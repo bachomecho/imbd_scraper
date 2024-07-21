@@ -2,6 +2,7 @@ from imdb import Cinemagoer
 import argparse, os, sys, sqlite3, shutil
 import requests
 from utils.utils import get_playlist, parse_playlist_for_ids
+from fill_missing_fields import fill_missing
 from dotenv import load_dotenv
 import deepl
 from typing import Literal
@@ -89,11 +90,12 @@ def main():
     parser.add_argument('-o', '--output', help='Provide an absolute path to an output directory', required=False)
     parser.add_argument('-cs', '--current_state', help='When provided shows the current state of the specified database.', required=False)
     parser.add_argument('-ij', '--integrate_json', help='Provide a json_file that you want to insert into a current or new database', required=False)
+    parser.add_argument('-fm', '--fill_missing', help='Fill missing fields given there is a database dump in json format in current directory', required=False)
     args = parser.parse_args()
 
     DB_KEYS = ['imdb_id', 'title', 'thumbnail_name', 'video_id', 'multi_part', 'duration', 'release_year', 'genre', 'director', 'plot']
 
-    assert (args.list or args.playlist or args.file or args.individual or args.current_state or args.integrate_json), 'No arguments provided on the command line.'
+    assert (args.list or args.playlist or args.file or args.individual or args.current_state or args.integrate_json or args.fill_missing), 'No arguments provided on the command line.'
 
     database_path = args.path if not args.current_state else args.current_state
 
@@ -116,6 +118,9 @@ def main():
         con = sqlite3.connect(database_path)
     else:
         assert os.path.isabs(args.current_state), 'Argument provided for current state should be an absolute file to a .db file.'
+    elif args.fill_missing:
+        assert os.path.isabs(args.fill_missing), 'Argument provided for fill missing should be an absolute path to a .db file.'
+        database_path = args.fill_missing
         con = sqlite3.connect(database_path)
 
     if con: print(f'[log] Connection to {database_path} has been established.')
@@ -138,7 +143,11 @@ def main():
         view_current_state(cur, DB_KEYS)
         sys.exit(0)
     elif args.integrate_json:
-        insert_json_into_db(con, cur, args.integrate_json)
+    elif args.fill_missing:
+        output_current_state_json(cur, DB_KEYS, database_path)
+        assert os.path.exists(database_path), "Json dump has not been found. There needs to be a database dump in json format in order to fill missing fields."
+        print('dump name', database_path)
+        fill_missing(database_path)
         sys.exit(0)
 
 
@@ -201,7 +210,14 @@ def main():
 
     inquire_current_db_state = input('Do you want to see current db state [y/n]: ')
     if inquire_current_db_state == 'y':
-        view_current_state(cur, DB_KEYS)
+    inquire_missing_fields = input('Do you want to fill missing fields e.g. video id and multi_part. [y/n]')
+    if inquire_missing_fields == 'y':
+        try:
+            fill_missing(database_path)
+        except FileNotFoundError:
+            output_current_state_json(cur, DB_KEYS, database_path)
+            assert os.path.exists(database_path), 'Json dump has not been found. There needs to be a database dump in json format in order to fill missing fields.'
+            fill_missing(database_path)
 
     con.close()
 
