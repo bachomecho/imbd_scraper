@@ -10,13 +10,10 @@ class JsonMovie(TypedDict):
     multi_part: Literal[0,1]
 
 def fill_missing(db_dump_json: str):
-    yt_search = YoutubeSearch()
-
     assert '.json' in db_dump_json, 'Provide file name with .json extension'
-
+    yt_search = YoutubeSearch()
     if os.path.isfile(os.path.join(os.curdir, db_dump_json)):
         db_dump_json = os.path.join(os.curdir, db_dump_json)
-        print('[+] File exists in current directory and will now be handled.')
     else:
         raise FileNotFoundError('Provided json file does not exist.')
 
