@@ -6,8 +6,8 @@ from fill_missing_fields import fill_missing
 from dotenv import load_dotenv
 import deepl
 from typing import Literal
-from utils.utils import log, titles_currently_present
-from utils.handle_json import insert_json_into_db, view_current_state
+from utils.utils import log, titles_currently_present, file_input_prompt
+from utils.handle_json import insert_json_into_db, output_current_state_json
 
 
 load_dotenv('.env')
@@ -95,37 +95,32 @@ def main():
 
     DB_KEYS = ['imdb_id', 'title', 'thumbnail_name', 'video_id', 'multi_part', 'duration', 'release_year', 'genre', 'director', 'plot']
 
-    assert (args.list or args.playlist or args.file or args.individual or args.current_state or args.integrate_json or args.fill_missing), 'No arguments provided on the command line.'
+    assert (
+        args.id_list
+        or args.playlist
+        or args.file
+        or args.individual
+        or args.current_state
+        or args.integrate_json
+        or args.fill_missing
+    ), "No arguments provided on the command line."
 
-    database_path = args.path if not args.current_state else args.current_state
+    database_path = None
 
-    if not args.current_state:
-        assert args.path, 'No path to/for a database has been provided.'
-        assert os.path.isabs(args.path), 'The path to the database is not absolute.'
+    if args.individual or args.id_list or args.file or args.playlist:
+        database_path = file_input_prompt(parsing_args=True)
+    elif args.current_state:
+        database_path = file_input_prompt(operational_argument='current_state')
 
-        if os.path.isfile(args.path):
-            print('Specified path points to a file that already exists.') # this is done in order for parsed movies to not be unnecessarily appended to an existing db
-            append_to_existing_database = input('Do you want to append to already existing database? [y/n]')
-            if append_to_existing_database == 'n':
-                create_new_db = input('Do you want to create a new database? If yes, a backup will be created in case you want to revert to previous state. [y/n]')
-                if create_new_db == 'y':
-                    shutil.copyfile(args.path, args.path.split('.')[0] + '_backup' + '.db')
-                    os.unlink(args.path)
+    if database_path:
         con = sqlite3.connect(database_path)
-    elif args.integrate_json:
-        assert os.path.isabs(args.integrate_json), 'Argument provided for integrate json should be an absolute file to a .json file.'
-        assert args.path, 'No path to/for a database has been provided.'
-        con = sqlite3.connect(database_path)
-    else:
-        assert os.path.isabs(args.current_state), 'Argument provided for current state should be an absolute file to a .db file.'
-    elif args.fill_missing:
-        assert os.path.isabs(args.fill_missing), 'Argument provided for fill missing should be an absolute path to a .db file.'
-        database_path = args.fill_missing
-        con = sqlite3.connect(database_path)
-
-    if con: print(f'[log] Connection to {database_path} has been established.')
-    else: raise ConnectionRefusedError(f'Connection to {database_path} could not be established.')
-    cur = con.cursor()
+        if con:
+            print(f"[log] Connection to {database_path} has been established.")
+        else:
+            raise ConnectionRefusedError(
+                f"Connection to {database_path} could not be established."
+            )
+        cur = con.cursor()
 
     movie_ids: list[int] = []
     if args.individual:
@@ -143,14 +138,14 @@ def main():
         view_current_state(cur, DB_KEYS)
         sys.exit(0)
     elif args.integrate_json:
-    elif args.fill_missing:
-        output_current_state_json(cur, DB_KEYS, database_path)
-        assert os.path.exists(database_path), "Json dump has not been found. There needs to be a database dump in json format in order to fill missing fields."
-        print('dump name', database_path)
-        fill_missing(database_path)
+        json_file = file_input_prompt(operational_argument='integrate_json')
+        insert_json_into_db(json_file)
         sys.exit(0)
 
-
+    elif args.fill_missing:
+        json_dump_to_revise = file_input_prompt(normal_json_inquiry=True)
+        fill_missing(json_dump_to_revise)
+        sys.exit(0)
 
     ia = Cinemagoer()
     create_table_query = """
@@ -208,16 +203,18 @@ def main():
         con.commit()
         print(f'[+] {len(extracted_movies)} movies have been added to movies table in {args.path}')
 
-    inquire_current_db_state = input('Do you want to see current db state [y/n]: ')
-    if inquire_current_db_state == 'y':
-    inquire_missing_fields = input('Do you want to fill missing fields e.g. video id and multi_part. [y/n]')
-    if inquire_missing_fields == 'y':
-        try:
-            fill_missing(database_path)
-        except FileNotFoundError:
-            output_current_state_json(cur, DB_KEYS, database_path)
-            assert os.path.exists(database_path), 'Json dump has not been found. There needs to be a database dump in json format in order to fill missing fields.'
-            fill_missing(database_path)
+    inquire_current_db_state = input("Do you want to see current db state. This will dump database into a json file in the current directory. [y/n]: ")
+    if inquire_current_db_state == "y":
+        output_current_state_json(cur, DB_KEYS, database_path)
+
+    inquire_missing_fields = input("Do you want to fill missing fields e.g. video id and multi_part. [y/n]")
+    if inquire_missing_fields == "y":
+        json_file = file_input_prompt(normal_json_inquiry=True)
+        fill_missing(json_file)
+
+        inquire_insert_into_db = input("Do you want to insert revised fields back into a database?")
+        if inquire_insert_into_db == "y":
+            insert_json_into_db(json_file)
 
     con.close()
 
