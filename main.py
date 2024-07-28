@@ -241,6 +241,8 @@ def main():
     print(
         f"\nFollowing movies will be added into the database -> {[mov['title'] for mov in extracted_movies]}.\n\nOut of the provided {len(movie_ids)} movie ids, {len(extracted_movies)} are actual new movies."
     )
+    add_movies = input("Do you want to add them? [y/n]")
+    if add_movies == "y":
         insert_query = f"""
         INSERT OR IGNORE INTO movies (
             {",".join(DB_KEYS)}
@@ -249,7 +251,7 @@ def main():
 
         cur.executemany(insert_query, extracted_movies)
         con.commit()
-        print(f'[+] {len(extracted_movies)} movies have been added to movies table in {args.path}')
+        print(f"[+] {len(extracted_movies)} movies have been added to movies table in {database_path}")
 
     inquire_current_db_state = input("Do you want to see current db state. This will dump database into a json file in the current directory. [y/n]: ")
     if inquire_current_db_state == "y":
