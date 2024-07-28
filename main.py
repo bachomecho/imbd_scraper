@@ -169,8 +169,8 @@ def main():
     movie_ids: list[str] = []
     if args.individual:
         movie_ids.append(args.individual.split('tt')[-1].strip('/'))
-    elif args.list:
-        movie_ids = args.list.split(',')
+    elif args.id_list:
+        movie_ids = args.id_list.split(',')
     elif args.playlist: # link to playlist https://www.imdb.com/list/ls563851203/
         movie_ids = parse_playlist_for_ids(get_playlist(args.playlist, os.getenv('USER_AGENT')))
     elif args.file:
