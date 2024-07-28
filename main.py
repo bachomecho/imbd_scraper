@@ -90,9 +90,60 @@ class Arguments:
     fill_missing: 1
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Extract information about movies from IMDb"
+    )
+    parser.add_argument(
+        "-path",
+        "--path",
+        help="Provide path to the sqlite3 database that you want to interact with.",
+    )
+    parser.add_argument(
+        "-i", "--individual", help="Provide the imdb to an individual movie."
+    )
+    parser.add_argument("-l", "--id_list", help="Provide a list of movie ids")
+    parser.add_argument(
+        "-f", "--file", help="Provide a file containing a list of movie ids"
+    )
+    parser.add_argument("-p", "--playlist", help="Provide a list of movie ids")
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Provide an absolute path to an output directory",
+        required=False,
+    )  # TODO: remove unused argument
+    parser.add_argument(
+        "-CURRENT_STATE",
+        "--current_state",
+        help="This will dump database into a json file in the current directory.",
+        required=False,
+    )
+    parser.add_argument(
+        "-INTEGRATE_JSON",
+        "--integrate_json",
+        help="Provide a json_file that you want to insert into a current or new database",
+        required=False,
+    )
+    parser.add_argument(
+        "-FILL_MISSING",
+        "--fill_missing",
+        help="Fill missing fields given there is a database dump in json format in current directory",
+        required=False,
+    )
     args: Arguments = parser.parse_args()
 
-    DB_KEYS = ['imdb_id', 'title', 'thumbnail_name', 'video_id', 'multi_part', 'duration', 'release_year', 'genre', 'director', 'plot']
+    DB_KEYS = [
+        "imdb_id",
+        "title",
+        "thumbnail_name",
+        "video_id",
+        "multi_part",
+        "duration",
+        "release_year",
+        "genre",
+        "director",
+        "plot",
+    ]
 
     assert (
         args.id_list
@@ -121,7 +172,7 @@ def main():
             )
         cur = con.cursor()
 
-    movie_ids: list[int] = []
+    movie_ids: list[str] = []
     if args.individual:
         movie_ids.append(args.individual.split('tt')[-1].strip('/'))
     elif args.list:
@@ -185,13 +236,17 @@ def main():
             movie_info = movie_obj.get_info()
             movie_obj.download_thumbnail(movie['cover url'], thumbnail_dir) # downloading thumbnail
             log(movie_info)
-            extracted_movies.append(movie_info) if movie_info['title'] not in current_database_state else print(f'{movie_info["title"]} already exists in database.')
+            (
+                extracted_movies.append(movie_info)
+                if movie_info["title"] not in current_database_state
+                else print(f'{movie_info["title"]} already exists in database.')
+            )
         except (KeyError, AttributeError):
             continue
 
-    print('Movies that will be added into the database.', extracted_movies)
-    add_movies = input('Do you want to add them? [y/n]')
-    if add_movies == 'y':
+    print(
+        f"\nFollowing movies will be added into the database -> {[mov['title'] for mov in extracted_movies]}.\n\nOut of the provided {len(movie_ids)} movie ids, {len(extracted_movies)} are actual new movies."
+    )
         insert_query = f"""
         INSERT OR IGNORE INTO movies (
             {",".join(DB_KEYS)}
