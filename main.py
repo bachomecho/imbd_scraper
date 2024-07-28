@@ -187,7 +187,7 @@ def main():
         sys.exit(0)
 
     elif args.fill_missing:
-        json_dump_to_revise = file_input_prompt(normal_json_inquiry=True)
+        json_dump_to_revise = file_input_prompt(operational_argument='fill_missing')
         fill_missing(json_dump_to_revise)
         sys.exit(0)
 
@@ -257,12 +257,13 @@ def main():
 
     inquire_missing_fields = input("Do you want to fill missing fields e.g. video id and multi_part. [y/n]")
     if inquire_missing_fields == "y":
-        json_file = file_input_prompt(normal_json_inquiry=True)
+        json_file = file_input_prompt(operational_argument='fill_missing')
         fill_missing(json_file)
 
         inquire_insert_into_db = input("Do you want to insert revised fields back into a database?")
         if inquire_insert_into_db == "y":
-            insert_json_into_db(json_file)
+            json_file_to_insert = file_input_prompt(operational_argument='integrate_json')
+            insert_json_into_db(json_file_to_insert)
 
     con.close()
 

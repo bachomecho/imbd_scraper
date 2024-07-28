@@ -41,14 +41,12 @@ def parse_playlist_for_ids(playlist_html: str):
 
 def file_input_prompt(
         operational_argument:Literal["current_state", "fill_missing", "integrate_json"]=None,
-        parsing_args=False,
-        normal_db_inquiry=False,
-        normal_json_inquiry=False
+        parsing_args=False
     ) -> str:
     if parsing_args: assert not operational_argument, "Cannot provide ops argument when parsing data."
     if operational_argument: assert not parsing_args, "Cannot provide parsing argument when using operational argument."
 
-    if (parsing_args or normal_db_inquiry or operational_argument == 'current_state'):
+    if (parsing_args or operational_argument == 'current_state'):
         is_current_state_arg_provided = True if operational_argument else False
         dbs = [
             file
@@ -58,7 +56,7 @@ def file_input_prompt(
 
         if dbs:
             print("\n*** DATABASE FILES AVAILABLE IN THE CURRENT DIRECTORY ***\n")
-            if not is_current_state_arg_provided or not normal_db_inquiry:
+            if not is_current_state_arg_provided:
                 print("\t[0] Create a new database.")
 
             for idx, file in enumerate(dbs):
@@ -73,11 +71,11 @@ def file_input_prompt(
             else:
                 return dbs[database_select - 1]
         else:
-            if not is_current_state_arg_provided and not normal_db_inquiry:
+            if not is_current_state_arg_provided:
                 return f"movies_{str(datetime.today().date()).replace('-', '_')}.db" # creates a default database file to operate on
             else:
                 raise FileNotFoundError("There are no database files available in the current directory.")
-    elif operational_argument == 'fill_missing' or operational_argument == 'integrate_json' or normal_json_inquiry:
+    elif operational_argument == 'fill_missing' or operational_argument == 'integrate_json':
         json_files = [
             file
             for file in os.listdir()
