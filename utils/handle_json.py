@@ -1,18 +1,16 @@
 import sqlite3
 import json, os
-from utils.utils import log
-from datetime import datetime
-from pathlib import Path
 
-def view_current_state(cur: sqlite3.Cursor, keys: list[str]):
+def output_current_state_json(cur: sqlite3.Cursor, keys: list[str], db_name: str):
     exec = cur.execute('SELECT * FROM movies')
     current_db_state = exec.fetchall()
-    log(current_db_state)
-    data_integrity_check = input('Do you want to update current database state using json? [y/n]')
-    if data_integrity_check == 'y':
-        json_movies = [dict(zip(keys,list(movie[1:])))for movie in current_db_state]
-        with open(f"db_dump_{str(datetime.today().date()).replace('-', '_')}.json", 'w') as out:
-            json.dump(json_movies, out)
+    json_movies = [dict(zip(keys,list(movie[1:])))for movie in current_db_state]
+
+    dump_name = f"db_dump_{os.path.basename(db_name).strip('.db')}.json"
+    with open(dump_name, 'w') as out:
+        json.dump(json_movies, out)
+        print(f'[log] Current state of the database has been dumped to {dump_name}.')
+
 
 def insert_json_into_db(json_file: str):
     database_path = 'REVISED_' + os.path.basename(json_file).strip('.json') + '.db'

@@ -179,7 +179,7 @@ def main():
             movie_links = list(map(str.strip, file.readlines()))
             movie_ids = [link.split('tt')[-1].strip('/') for link in movie_links]
     elif args.current_state:
-        view_current_state(cur, DB_KEYS)
+        output_current_state_json(cur, DB_KEYS, database_path)
         sys.exit(0)
     elif args.integrate_json:
         json_file = file_input_prompt(operational_argument='integrate_json')
