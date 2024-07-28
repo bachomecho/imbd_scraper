@@ -80,18 +80,17 @@ class Movie:
             'plot': translator.translate_text(self.plot, target_lang="BG").text,
         }
 
+class Arguments:
+    individual: str
+    id_list: list[str]
+    file: str
+    playlist: str  # TODO: some kind of url type
+    current_state: 1
+    integrate_json: 1
+    fill_missing: 1
+
 def main():
-    parser = argparse.ArgumentParser(description='Extract information about movies from IMDb')
-    parser.add_argument('-path', '--path', help='Provide path to the sqlite3 database that you want to interact with.')
-    parser.add_argument('-i', '--individual', help='Provide the imdb to an individual movie.')
-    parser.add_argument('-l', '--list', help='Provide a list of movie ids')
-    parser.add_argument('-f', '--file', help='Provide a file containing a list of movie ids')
-    parser.add_argument('-p', '--playlist', help='Provide a list of movie ids')
-    parser.add_argument('-o', '--output', help='Provide an absolute path to an output directory', required=False)
-    parser.add_argument('-cs', '--current_state', help='When provided shows the current state of the specified database.', required=False)
-    parser.add_argument('-ij', '--integrate_json', help='Provide a json_file that you want to insert into a current or new database', required=False)
-    parser.add_argument('-fm', '--fill_missing', help='Fill missing fields given there is a database dump in json format in current directory', required=False)
-    args = parser.parse_args()
+    args: Arguments = parser.parse_args()
 
     DB_KEYS = ['imdb_id', 'title', 'thumbnail_name', 'video_id', 'multi_part', 'duration', 'release_year', 'genre', 'director', 'plot']
 
