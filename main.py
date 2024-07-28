@@ -107,12 +107,6 @@ def main():
     )
     parser.add_argument("-p", "--playlist", help="Provide a list of movie ids")
     parser.add_argument(
-        "-o",
-        "--output",
-        help="Provide an absolute path to an output directory",
-        required=False,
-    )  # TODO: remove unused argument
-    parser.add_argument(
         "-CURRENT_STATE",
         "--current_state",
         help="This will dump database into a json file in the current directory.",
