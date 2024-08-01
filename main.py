@@ -88,6 +88,7 @@ class Arguments:
     current_state: 1
     integrate_json: 1
     fill_missing: 1
+    download_thumbnails: 1
 
 def main():
     parser = argparse.ArgumentParser(
@@ -123,6 +124,11 @@ def main():
         "--fill_missing",
         help="Fill missing fields given there is a database dump in json format in current directory",
         required=False,
+    )
+    parser.add_argument(
+        "-DOWNLOAD_THUMBNAILS",
+        "--download_thumbnails",
+        help="Download thumbnails for the movies in the database. Provide that argument in combination with the parsing arguments: -individual, -id_list, -file, -playlist",
     )
     args: Arguments = parser.parse_args()
 
@@ -212,7 +218,6 @@ def main():
     current_database_state = titles_currently_present(cur)
     extracted_movies = []
 
-    thumbnail_dir = os.getenv('THUMBNAIL_DIR')
     for movie_id in movie_ids:
         try:
             movie = ia.get_movie_main(movie_id)['data']
@@ -228,7 +233,8 @@ def main():
             print('Information from following movies is being extracted: \n')
             print(f'{movie_id}: {repr(movie_obj)}')
             movie_info = movie_obj.get_info()
-            movie_obj.download_thumbnail(movie['cover url'], thumbnail_dir) # downloading thumbnail
+            if args.download_thumbnails:
+                movie_obj.download_thumbnail(movie['cover url'], os.getenv('THUMBNAIL_DIR'))
             log(movie_info)
             (
                 extracted_movies.append(movie_info)
