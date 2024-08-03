@@ -263,10 +263,10 @@ def main():
     if inquire_current_db_state == "y":
         output_current_state_json(cur, DB_KEYS, database_path)
 
-    inquire_missing_fields = input("Do you want to fill missing fields e.g. video id and multi_part. [y/n]")
+    inquire_missing_fields = input("Do you want to fill missing fields of newly extracted movies e.g. video id and multi_part. [y/n]")
     if inquire_missing_fields == "y":
         json_file = file_input_prompt(operational_argument='fill_missing')
-        fill_missing(json_file)
+        fill_missing(json_file, len(extracted_movies))
 
         inquire_insert_into_db = input("Do you want to insert revised fields back into a database?")
         if inquire_insert_into_db == "y":
