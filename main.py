@@ -52,7 +52,11 @@ class Movie:
 
 
     def _generate_thumbnail_name(self):
-        return f"{self._parse_title('english').replace(' ', '_').lower()}_{self.duration}_{self.release_year}"
+        english_title = self._parse_title('english')
+        thumb_chars_to_replace = ('*', '#', '!', ',')
+        for char in thumb_chars_to_replace:
+            english_title = english_title.replace(char, '')
+        return f"{english_title.replace(' ', '_').replace('-', '_').lower()}_{self.duration}_{self.release_year}"
 
     def download_thumbnail(self, url: str, thumbnail_dir: str):
         thumbnail_path = os.path.join(thumbnail_dir, f'{self._generate_thumbnail_name()}.jpg')
