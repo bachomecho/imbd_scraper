@@ -8,6 +8,7 @@ import deepl
 from typing import Literal
 from utils.utils import log, titles_currently_present, file_input_prompt
 from utils.handle_json import insert_json_into_db, output_current_state_json
+from datetime import datetime
 
 
 load_dotenv('.env')
@@ -94,6 +95,18 @@ class Arguments:
     fill_missing: 1
     download_thumbnails: 1
 
+def group_files_dir(files):
+    dir_name = f"1_{str(datetime.today().date()).replace('-', '')}_DATABASE_AND_JSON"
+    idx = 1
+    while os.path.isdir(dir_name):
+        dir_name_split = dir_name.split('_')
+        idx += 1
+        dir_name = f"{idx}_{'_'.join(dir_name_split[1:])}"
+    os.makedirs(dir_name)
+    for file in files:
+        shutil.copyfile(file, os.path.join(dir_name, file))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Extract information about movies from IMDb"
@@ -173,6 +186,7 @@ def main():
         database_path = file_input_prompt(operational_argument='current_state')
 
     if database_path:
+        files_to_be_moved.append(database_path)
         con = sqlite3.connect(database_path)
         if con:
             print(f"[log] Connection to {database_path} has been established.")
@@ -195,16 +209,21 @@ def main():
             movie_links = list(map(str.strip, file.readlines()))
             movie_ids = [link.split('tt')[-1].strip('/') for link in movie_links]
     elif args.current_state:
+        files_to_be_moved.append(f"db_dump_{os.path.basename(database_path).strip('.db')}.json")
         output_current_state_json(cur, DB_KEYS, database_path)
         sys.exit(0)
     elif args.integrate_json:
         json_file = file_input_prompt(operational_argument='integrate_json')
+        files_to_be_moved.append(json_file)
+        files_to_be_moved.append(database_path = 'REVISED_' + os.path.basename(json_file).strip('.json') + '.db')
         insert_json_into_db(json_file)
         sys.exit(0)
 
     elif args.fill_missing:
         json_dump_to_revise = file_input_prompt(operational_argument='fill_missing')
         fill_missing(json_dump_to_revise)
+        files_to_be_moved.append(json_dump_to_revise)
+        sys.exit(0)
     elif args.tidy_dir:
         db_json_files = [file for file in os.listdir() if file.endswith('.db') or file.endswith('.json')]
         if not db_json_files:
@@ -279,19 +298,24 @@ def main():
 
     inquire_current_db_state = input("Do you want to see current db state. This will dump database into a json file in the current directory. [y/n]: ")
     if inquire_current_db_state == "y":
+        json_dump = f"db_dump_{os.path.basename(database_path).strip('.db')}.json"
+        files_to_be_moved.append(json_dump)
         output_current_state_json(cur, DB_KEYS, database_path)
 
     inquire_missing_fields = input("Do you want to fill missing fields of newly extracted movies e.g. video id and multi_part. [y/n]")
     if inquire_missing_fields == "y":
-        json_file = file_input_prompt(operational_argument='fill_missing')
-        fill_missing(json_file, len(extracted_movies))
+        revised_json = f"REVISED_movies_{str(datetime.today().date()).replace('-', '')}.json"
+        files_to_be_moved.append(revised_json)
+        fill_missing(json_dump, len(extracted_movies))
 
         inquire_insert_into_db = input("Do you want to insert revised fields back into a database?")
         if inquire_insert_into_db == "y":
-            json_file_to_insert = file_input_prompt(operational_argument='integrate_json')
-            insert_json_into_db(json_file_to_insert)
+            files_to_be_moved.append('REVISED_' + os.path.basename(revised_json).strip('.json') + '.db')
+            insert_json_into_db(revised_json)
 
     con.close()
+
+    group_files_dir(files_to_be_moved)
 
 if __name__ == '__main__':
     main()
