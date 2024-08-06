@@ -134,6 +134,11 @@ def main():
         "--download_thumbnails",
         help="Download thumbnails for the movies in the database. Provide that argument in combination with the parsing arguments: -individual, -id_list, -file, -playlist",
     )
+    parser.add_argument(
+        "-TIDY_DIR",
+        "--tidy_dir",
+        help="Get rid of all db and json files in current directory"
+    )
     args: Arguments = parser.parse_args()
 
     DB_KEYS = [
@@ -157,6 +162,7 @@ def main():
         or args.current_state
         or args.integrate_json
         or args.fill_missing
+        or args.tidy_dir
     ), "No arguments provided on the command line."
 
     database_path = None
@@ -199,6 +205,14 @@ def main():
     elif args.fill_missing:
         json_dump_to_revise = file_input_prompt(operational_argument='fill_missing')
         fill_missing(json_dump_to_revise)
+    elif args.tidy_dir:
+        db_json_files = [file for file in os.listdir() if file.endswith('.db') or file.endswith('.json')]
+        if not db_json_files:
+            print("No .json or .db files found in the current directory.")
+            sys.exit(0)
+        for file in db_json_files:
+            os.remove(file)
+        print(f"[+] Removed {len(db_json_files)} .json or .db files from the current directory.")
         sys.exit(0)
 
     ia = Cinemagoer()
