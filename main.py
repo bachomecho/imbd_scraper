@@ -178,6 +178,8 @@ def main():
         or args.tidy_dir
     ), "No arguments provided on the command line."
 
+    files_to_be_moved = []
+
     database_path = None
 
     if args.individual or args.id_list or args.file or args.playlist:
