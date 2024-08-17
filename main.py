@@ -1,5 +1,5 @@
 from imdb import Cinemagoer
-import argparse, os, sys, sqlite3, shutil
+import argparse, os, sys, sqlite3, shutil, json
 import requests
 from utils.utils import get_playlist, parse_playlist_for_ids
 from fill_missing_fields import fill_missing
@@ -94,6 +94,8 @@ class Arguments:
     integrate_json: 1
     fill_missing: 1
     download_thumbnails: 1
+    tidy_dir: 1
+    remove_entry: 1
 
 def group_files_dir(files):
     dir_name = f"1_{str(datetime.today().date()).replace('-', '')}_DATABASE_AND_JSON"
@@ -152,6 +154,11 @@ def main():
         "--tidy_dir",
         help="Get rid of all db and json files in current directory"
     )
+    parser.add_argument(
+        "-REMOVE_ENTRY",
+        "--remove_entry",
+        help="Remove database entry"
+    )
     args: Arguments = parser.parse_args()
 
     DB_KEYS = [
@@ -176,6 +183,7 @@ def main():
         or args.integrate_json
         or args.fill_missing
         or args.tidy_dir
+        or args.remove_entry
     ), "No arguments provided on the command line."
 
     files_to_be_moved = []
@@ -235,6 +243,19 @@ def main():
             os.remove(file)
         print(f"[+] Removed {len(db_json_files)} .json or .db files from the current directory.")
         sys.exit(0)
+    elif args.remove_entry:
+        all_movies = cur.execute("SELECT title FROM movies")
+        for idx, movie in enumerate(all_movies):
+            print(f"\t[{idx+1}] {movie}")
+        select_movie_to_update = input("Please select movie you wish to remove: \n")
+        remove_query = f"""
+        DELETE FROM movies
+        WHERE title = "{all_movies[select_movie_to_update-1]}";
+        """
+        print('remove query: ', remove_query)
+        cur.execute(remove_query)
+        con.commit()
+
 
     ia = Cinemagoer()
     create_table_query = """
