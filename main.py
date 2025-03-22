@@ -1,13 +1,12 @@
 from imdb import Cinemagoer
 import argparse, os, sys, sqlite3, shutil, json
-import requests
-from utils.utils import get_playlist, parse_playlist_for_ids
+import requests, warnings
+from utils import log,get_playlist, parse_playlist_for_ids, titles_currently_present, file_input_prompt, bulk_update_with_file, file_prompt
 from fill_missing_fields import fill_missing
 from dotenv import load_dotenv
 import deepl
 from typing import Literal
-from utils.utils import log, titles_currently_present, file_input_prompt
-from utils.handle_json import insert_json_into_db, output_current_state_json
+from handle_json import insert_json_into_db, output_current_state_json
 from datetime import datetime
 
 
