@@ -8,7 +8,7 @@ import deepl
 from typing import Literal
 from handle_json import insert_json_into_db, output_current_state_json
 from datetime import datetime
-
+from selenium_scraping.imdb_custom_parser_selenium import SeleniumScraper
 
 load_dotenv('.env')
 translator = deepl.Translator(os.getenv("DEEPL_API_KEY"))
@@ -277,6 +277,7 @@ def main():
     current_database_state = titles_currently_present(cur)
     extracted_movies = []
 
+    selenium_scraper = SeleniumScraper()
     for movie_id in movie_ids:
         try:
             movie = ia.get_movie_main(movie_id)['data']
@@ -287,7 +288,7 @@ def main():
                 duration=movie['runtimes'],
                 release_year=movie['year'],
                 genre=movie['genres'],
-                plot=movie['plot outline'],
+                plot=selenium_scraper.extract_summary(movie_id)
             )
             print('Information from following movies is being extracted: \n')
             print(f'{movie_id}: {repr(movie_obj)}')
