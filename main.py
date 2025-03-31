@@ -3,86 +3,13 @@ import argparse, os, sys, sqlite3, shutil, json
 import requests, warnings
 from utils import log,get_playlist, parse_playlist_for_ids, titles_currently_present, file_input_prompt, bulk_update_with_file, file_prompt
 from fill_missing_fields import fill_missing
-from dotenv import load_dotenv
-import deepl
 from typing import Literal
 from handle_json import insert_json_into_db, output_current_state_json
 from datetime import datetime
 from selenium_scraping.imdb_custom_parser_selenium import SeleniumScraper
+from translator import DeeplTranslator
+from movie import Movie
 
-load_dotenv('.env')
-translator = deepl.Translator(os.getenv("DEEPL_API_KEY"))
-
-class Movie:
-    def __init__(
-        self,
-        imdb_id: str,
-        titles: list[str],
-        director: list[str],
-        duration: list[int],
-        release_year: int,
-        genre: list[str],
-        plot: str,
-    ) -> None:
-        self.imdb_id = imdb_id
-        self.titles = titles
-        self.director = director[0]['name']
-        if len(self.director.split()) > 2:
-            self.director = " ".join(self.director.split()[1:])
-        self.duration = int(duration[0])
-        self.release_year = release_year
-        self.genre = genre
-        self.plot = plot
-
-    def __repr__(self) -> str:
-        return f"""Movie: (
-            imdb_id={self.imdb_id},
-            titles={self.titles},
-            director={self.director},
-            duration={self.duration},
-            release_year={self.release_year},
-            genre={self.genre},
-            plot={self.plot},
-        )"""
-
-    def _parse_title(self, lang: Literal['bulgarian', 'english']) -> str:
-        for title in self.titles:
-            if lang in title.lower():
-                return title.split('(')[0].strip()
-
-
-    def _generate_thumbnail_name(self):
-        english_title = self._parse_title('english')
-        thumb_chars_to_replace = ('*', '#', '!', ',')
-        for char in thumb_chars_to_replace:
-            english_title = english_title.replace(char, '')
-        return f"{english_title.replace(' ', '_').replace('-', '_').lower()}_{self.duration}_{self.release_year}"
-
-    def download_thumbnail(self, url: str, thumbnail_dir: str):
-        thumbnail_path = os.path.join(thumbnail_dir, f'{self._generate_thumbnail_name()}.jpg')
-        if os.path.exists(thumbnail_path):
-            return
-        res = requests.get(url, headers={'User-Agent': os.getenv('USER_AGENT')}, stream=True)
-        if res.status_code == 200:
-            if not os.path.exists(thumbnail_dir):
-                os.makedirs(thumbnail_dir)
-            with open(thumbnail_path, 'wb') as file:
-                shutil.copyfileobj(res.raw, file)
-            del res
-
-    def get_info(self) -> dict:
-        return {
-            'imdb_id': self.imdb_id,
-            'title': self._parse_title('bulgarian'),
-            'thumbnail_name': self._generate_thumbnail_name(),
-            'video_id': None,
-            'multi_part': 0,
-            'duration': self.duration,
-            'release_year': self.release_year,
-            'genre': translator.translate_text(','.join(self.genre), target_lang="BG").text,
-            'director': translator.translate_text(self.director, target_lang="BG").text,
-            'plot': translator.translate_text(self.plot, target_lang="BG").text,
-        }
 
 class Arguments:
     individual: str
@@ -278,6 +205,7 @@ def main():
     extracted_movies = []
 
     selenium_scraper = SeleniumScraper()
+    translator = DeeplTranslator.initialize_translator()
     for movie_id in movie_ids:
         try:
             movie = ia.get_movie_main(movie_id)['data']
@@ -288,7 +216,7 @@ def main():
                 duration=movie['runtimes'],
                 release_year=movie['year'],
                 genre=movie['genres'],
-                plot=selenium_scraper.extract_summary(movie_id)
+                translator=translator
             )
             print('Information from following movies is being extracted: \n')
             print(f'{movie_id}: {repr(movie_obj)}')
