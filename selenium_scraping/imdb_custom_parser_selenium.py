@@ -1,8 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
-import sqlite3
-import time, os, json
+import time, os
 from selenium.webdriver.common.by import By
 from dotenv import load_dotenv
 load_dotenv('.env')
@@ -50,24 +49,12 @@ class SeleniumScraper:
         if single_summary: self.driver.quit()
         return text
 
-    def extract_multiple_summaries(self, ids: list[tuple]):
+    def extract_multiple_summaries(self, ids: list[str]):
         summaries = dict()
         for id in ids:
-            summaries[id[0]] = self.extract_summary(id[0], single_summary=False)
+            summaries[id] = self.extract_summary(id, single_summary=False)
             self.driver.delete_all_cookies()
 
         self.driver.quit()
         return summaries
 
-
-def parse_summaries():
-    con = sqlite3.connect('movies.db')
-    cur = con.cursor()
-    res = cur.execute('SELECT imdb_id FROM movies')
-    ids = res.fetchall()
-    scraper = SeleniumScraper()
-    summaries = scraper.extract_multiple_summaries(ids)
-    with open('out_summaries.json', 'w') as out:
-        json.dump(summaries, out)
-
-parse_summaries()
