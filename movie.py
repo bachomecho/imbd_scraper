@@ -1,5 +1,5 @@
 from typing import Literal
-from translator import Translator
+from translator import DeeplTranslator
 import os, shutil, requests
 
 class Movie:
@@ -12,7 +12,7 @@ class Movie:
         release_year: int,
         genre: list[str],
         plot: str,
-        translator: Translator
+        translator: DeeplTranslator
     ) -> None:
         self.imdb_id = imdb_id
         self.titles = titles
@@ -59,9 +59,6 @@ class Movie:
             with open(thumbnail_path, 'wb') as file:
                 shutil.copyfileobj(res.raw, file)
             del res
-
-    def translator_setup(self):
-        self.translator.initialize_translator()
 
     def get_info(self) -> dict:
         return {
