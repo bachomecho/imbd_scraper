@@ -1,9 +1,9 @@
-from imdb_custom_parser_selenium import SeleniumScraper
+from selenium_scraping.imdb_custom_parser_selenium import SeleniumScraper
 import requests
-from translator import DeeplTranslator
+from extractor.translator import DeeplTranslator
 from bs4 import BeautifulSoup
 from abc import abstractmethod
-from movie import Movie
+from extractor.movie import Movie
 
 
 class ExtractorMeta:
@@ -67,12 +67,36 @@ class PlaylistExtractor(ExtractorMeta):
         else:
             raise Exception(f'Failed to fetch the page with following status code: {res.status_code}')
 
-    def get_ids_from_playlist(playlist_html: str):
+    def get_movie_ids(playlist_html: str):
         soup = BeautifulSoup(playlist_html, 'html.parser')
         links_with_ids = soup.find_all('a', class_ = 'ipc-title-link-wrapper', href=True)
         return [link['href'].split('/')[2].lstrip('tt') for link in links_with_ids]
 
-class SetExtractStrategy(ExtractorMeta):
+    def extract(self):
+        return super().extract()
+
+class IndividualExtractor(ExtractorMeta):
+    def __init__(self, selenium_scraper, translator, imdb, movie_id):
+        super().__init__(selenium_scraper, translator, imdb)
+        self.movie_id = movie_id
+
+    def get_movie_ids(self):
+        return [self.movie_id]
+
+    def extract(self):
+        return super().extract()
+
+
+class IDListExtractor(ExtractorMeta):
+    def __init__(self, selenium_scraper, translator, imdb, id_list):
+        super().__init__(selenium_scraper, translator, imdb)
+        self.id_list = id_list
+    def get_movie_ids(self):
+        return super().get_movie_ids()
+    def extract(self):
+        return super().extract()
+
+class SetExtractStrategy(ExtractorMeta): # TODO: call in gui
     def __init__(self, strategy: ExtractorMeta):
         self.strategy = strategy
 

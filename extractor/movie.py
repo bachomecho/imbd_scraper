@@ -1,5 +1,5 @@
 from typing import Literal
-from translator import DeeplTranslator
+from extractor.translator import DeeplTranslator
 import os, shutil, requests
 
 class Movie:
