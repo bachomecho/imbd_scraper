@@ -1,5 +1,6 @@
 venv
 *.json
 .env
-*pycache*
+*cache*
 *.txt
+.idea
