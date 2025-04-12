@@ -97,12 +97,12 @@ class IDListExtractor(ExtractorMeta):
     def extract(self):
         return super().extract()
 
-class SetExtractStrategy(ExtractorMeta): # TODO: call in gui
-    def __init__(self, strategy: ExtractorMeta):
+class SetExtractStrategy:
+    def __init__(self, strategy: ExtractorMeta | None = None):
         self.strategy = strategy
 
     def set_extract_method(self, strategy):
         self.strategy = strategy
 
-    def extract_imdb_info(self):
-        self.strategy.extract()
+    def extract(self) -> list[str]:
+        return self.strategy.extract()
