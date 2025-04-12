@@ -18,8 +18,9 @@ class ExtractorMeta:
 
     def extract(self):
         extracted_movies = []
-        plots_map = self.selenium_scraper.extract_multiple_summaries(self.get_movie_ids())
-        for movie_id in self.get_movie_ids():
+        movie_ids = self.get_movie_ids()
+        plots_map = self.selenium_scraper.extract_multiple_summaries(self.get_movie_ids()) if len(movie_ids) > 1 else self.selenium_scraper.extract_summary(movie_ids[0])
+        for movie_id in movie_ids:
             try:
                 movie = self.imdb.get_movie_main(movie_id)['data']
                 movie_obj = Movie(
@@ -78,7 +79,7 @@ class PlaylistExtractor(ExtractorMeta):
 class IndividualExtractor(ExtractorMeta):
     def __init__(self, selenium_scraper, translator, imdb, movie_id):
         super().__init__(selenium_scraper, translator, imdb)
-        self.movie_id = movie_id
+        self.movie_id = movie_id.strip('tt')
 
     def get_movie_ids(self):
         return [self.movie_id]

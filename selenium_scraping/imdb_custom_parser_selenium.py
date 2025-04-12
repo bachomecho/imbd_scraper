@@ -47,7 +47,7 @@ class SeleniumScraper:
                     print('No summary element found.')
                     break
         if single_summary: self.driver.quit()
-        return text
+        return {id: text}
 
     def extract_multiple_summaries(self, ids: list[str]):
         summaries = dict()
