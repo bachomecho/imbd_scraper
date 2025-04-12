@@ -37,9 +37,11 @@ class Movie:
         )"""
 
     def _parse_title(self, lang: Literal['bulgarian', 'english']) -> str:
-        for title in self.titles:
+        akas, localized_title = self.titles
+        for title in akas:
             if lang in title.lower():
                 return title.split('(')[0].strip()
+        return localized_title
 
     def _generate_thumbnail_name(self):
         english_title = self._parse_title('english')

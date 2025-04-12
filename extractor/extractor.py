@@ -25,7 +25,7 @@ class ExtractorMeta:
                 movie = self.imdb.get_movie_main(movie_id)['data']
                 movie_obj = Movie(
                     imdb_id=movie_id,
-                    titles=movie['akas'],
+                    titles=(movie['akas'], movie['localized title']),
                     director=movie['director'],
                     duration=movie['runtimes'],
                     release_year=movie['year'],
