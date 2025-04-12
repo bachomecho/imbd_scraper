@@ -4,6 +4,7 @@ from extractor.extractor import SetExtractStrategy, IndividualExtractor, FileExt
 from selenium_scraping.imdb_custom_parser_selenium import SeleniumScraper
 from imdb import Cinemagoer
 from extractor.translator import DeeplTranslator
+from extractor.database import DBConnection
 import os
 
 class ExtractorApp:
@@ -24,6 +25,8 @@ class ExtractorApp:
         # Extract Button
         self.extract_button = ttk.Button(root, text="Extract", command=self.run_extraction)
         self.extract_button.pack(pady=10)
+        self.db_button = ttk.Button(root, text="Insert into DB", command=self.insert_into_db)
+        self.db_button.pack(pady=10, padx=10)
 
         # Output Box
         self.output_box = tk.Text(root, height=5, width=50, state='disabled')
@@ -31,6 +34,7 @@ class ExtractorApp:
 
         # Initialize input field
         self.update_input_field(self.options[0])
+        self.EXTRACTED_MOVIES = None
 
     def update_input_field(self, selection):
         for widget in self.input_frame.winfo_children():
@@ -50,6 +54,13 @@ class ExtractorApp:
         filepath = filedialog.askopenfilename(initialdir=os.path.curdir)
         if filepath:
             self.file_path_var.set(filepath)
+
+    def insert_into_db(self):
+        db_con = DBConnection('movies.db')
+        if not self.EXTRACTED_MOVIES:
+            return 1
+        db_con.insert_data(self.EXTRACTED_MOVIES)
+        db_con.close_connection()
 
     def run_extraction(self):
         selection = self.selected_option.get()
@@ -80,6 +91,7 @@ class ExtractorApp:
             input_value = ""
 
         result = strat.extract()
+        self.EXTRACTED_MOVIES = result
 
         # Show result in output box
         self.output_box.config(state='normal')
