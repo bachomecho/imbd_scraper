@@ -30,6 +30,7 @@ class ExtractorMeta:
                     duration=movie['runtimes'],
                     release_year=movie['year'],
                     genre=movie['genres'],
+                    rating=movie['rating'],
                     plot=plots_map[movie_id],
                     translator=self.translator
                 )

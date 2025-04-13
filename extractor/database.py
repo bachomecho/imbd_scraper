@@ -3,9 +3,6 @@ class DBConnection:
     _instance = None
 
     def __new__(cls, *args, **kwargs):
-        print(
-            'class: ', cls
-        )
         if cls._instance is None:
             cls._instance = super(DBConnection, cls).__new__(cls)
         return cls._instance
@@ -32,6 +29,7 @@ class DBConnection:
             "duration",
             "release_year",
             "genre",
+            "rating",
             "director",
             "plot",
         ]

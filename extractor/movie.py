@@ -11,6 +11,7 @@ class Movie:
         duration: list[int],
         release_year: int,
         genre: list[str],
+        rating: float,
         plot: str,
         translator: DeeplTranslator
     ) -> None:
@@ -22,6 +23,7 @@ class Movie:
         self.duration = int(duration[0])
         self.release_year = release_year
         self.genre = genre
+        self.rating = rating
         self.plot = plot
         self.translator = translator
 
@@ -33,6 +35,7 @@ class Movie:
             duration={self.duration},
             release_year={self.release_year},
             genre={self.genre},
+            rating={self.rating},
             plot={self.plot},
         )"""
 
@@ -76,6 +79,7 @@ class Movie:
             'duration': self.duration,
             'release_year': self.release_year,
             'genre': self.translator.translate_text(','.join(self.genre), target_lang="BG").text,
+            'rating': self.rating,
             'director': self.translator.translate_text(self.director, target_lang="BG").text,
             'plot': self.translator.translate_text(self.plot, target_lang="BG").text,
         }
