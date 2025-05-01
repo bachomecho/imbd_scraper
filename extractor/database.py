@@ -45,4 +45,14 @@ class DBConnection:
         self.connection.commit()
         print(f"[+] {len(extracted_movies)} movies have been added to movies table in {self.db_path}")
 
+    def retrieve_all_ids(self):
+        return self.cur.execute("SELECT imdb_id FROM movies").fetchall()
 
+    def update_field_for_all_movies(self, field: str, update_data: dict):
+        assert field in self.DB_KEYS, "Chosen field does not exist in database."
+        update_query = f"""
+        UPDATE movies SET {field}=:{field} WHERE imdb_id=:imdb_id
+        """
+        self.cur.executemany(update_query,update_data)
+        self.connection.commit()
+        print(f"{field.title()} field has been updated.")

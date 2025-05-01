@@ -13,7 +13,7 @@ class Movie:
         genre: list[str],
         rating: float,
         plot: str,
-        translator: DeeplTranslator
+        translator: DeeplTranslator,
     ) -> None:
         self.imdb_id = imdb_id
         self.titles = titles
@@ -66,7 +66,7 @@ class Movie:
             del res
 
     def get_info(self) -> dict:
-        return {
+        obj = {
             'imdb_id': self.imdb_id,
             'title': self._parse_title('bulgarian'),
             'thumbnail_name': self._generate_thumbnail_name(),
@@ -81,5 +81,8 @@ class Movie:
             'genre': self.translator.translate_text(','.join(self.genre), target_lang="BG").text,
             'rating': self.rating,
             'director': self.translator.translate_text(self.director, target_lang="BG").text,
-            'plot': self.translator.translate_text(self.plot, target_lang="BG").text,
         }
+        if self.plot:
+            obj.update({'plot': self.translator.translate_text(self.plot, target_lang="BG").text})
+        else: obj.update({'plot': None})
+        return obj

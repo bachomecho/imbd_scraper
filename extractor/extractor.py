@@ -7,37 +7,60 @@ from extractor.movie import Movie
 
 
 class ExtractorMeta:
-    def __init__(self, selenium_scraper: SeleniumScraper, translator: DeeplTranslator, imdb):
+    def __init__(self, selenium_scraper: SeleniumScraper, translator: DeeplTranslator, imdb, extract_sole_field=None):
         self.selenium_scraper = selenium_scraper
         self.imdb = imdb
         self.translator = translator.initialize_translator()
+        self.extract_sole_field = extract_sole_field
 
     @abstractmethod
     def get_movie_ids(self) -> list[str]:
         pass
 
-    def extract(self):
+    def extract(self) -> list[dict]:
         extracted_movies = []
         movie_ids = self.get_movie_ids()
-        plots_map = self.selenium_scraper.extract_multiple_summaries(self.get_movie_ids()) if len(movie_ids) > 1 else self.selenium_scraper.extract_summary(movie_ids[0])
-        for movie_id in movie_ids:
-            try:
-                movie = self.imdb.get_movie_main(movie_id)['data']
-                movie_obj = Movie(
-                    imdb_id=movie_id,
-                    titles=(movie['akas'], movie['localized title']),
-                    director=movie['director'],
-                    duration=movie['runtimes'],
-                    release_year=movie['year'],
-                    genre=movie['genres'],
-                    rating=movie['rating'],
-                    plot=plots_map[movie_id],
-                    translator=self.translator
-                )
-                extracted_movies.append(movie_obj.get_info())
-            except (KeyError, AttributeError) as e:
-                print('error: ', e)
-                continue
+        if self.selenium_scraper:
+            plots_map = self.selenium_scraper.extract_multiple_summaries(self.get_movie_ids()) if len(movie_ids) > 1 else self.selenium_scraper.extract_summary(movie_ids[0])
+            for movie_id in movie_ids:
+                print(f'extracting {self.extract_sole_field} for {movie_id}..')
+                try:
+                    movie = self.imdb.get_movie_main(movie_id)['data']
+                    movie_obj = Movie(
+                        imdb_id=movie_id,
+                        titles=(movie['akas'], movie['localized title']),
+                        director=movie['director'],
+                        duration=movie['runtimes'],
+                        release_year=movie['year'],
+                        genre=movie['genres'],
+                        rating=movie['rating'],
+                        plot=plots_map[movie_id],
+                        translator=self.translator
+                    )
+                    extracted_movies.append(movie_obj.get_info())
+                except (KeyError, AttributeError) as e:
+                    print('error: ', e)
+                    continue
+        else:
+            for movie_id in movie_ids:
+                print(f'extracting {self.extract_sole_field} for {movie_id}..')
+                try:
+                    movie = self.imdb.get_movie_main(movie_id)['data']
+                    movie_obj = Movie(
+                        imdb_id=movie_id,
+                        titles=(movie['akas'], movie['localized title']),
+                        director=movie['director'],
+                        duration=movie['runtimes'],
+                        release_year=movie['year'],
+                        genre=movie['genres'],
+                        rating=movie['rating'],
+                        plot=None,
+                        translator=self.translator
+                    )
+                    extracted_movies.append(movie_obj.get_info())
+                except (KeyError, AttributeError) as e:
+                    print('error: ', e)
+                    continue
         return extracted_movies
 
 
