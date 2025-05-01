@@ -113,11 +113,12 @@ class IndividualExtractor(ExtractorMeta):
 
 
 class IDListExtractor(ExtractorMeta):
-    def __init__(self, selenium_scraper, translator, imdb, id_list):
-        super().__init__(selenium_scraper, translator, imdb)
+    def __init__(self, selenium_scraper, translator, imdb, extract_sole_field, id_list):
+        super().__init__(selenium_scraper, translator, imdb, extract_sole_field)
         self.id_list = id_list
     def get_movie_ids(self):
-        return super().get_movie_ids()
+        assert isinstance(self.id_list, list), 'Argument id_list is not a list'
+        return self.id_list
     def extract(self):
         return super().extract()
 
