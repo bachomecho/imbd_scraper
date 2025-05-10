@@ -46,15 +46,17 @@ class SeleniumScraper:
                 if reachedBottom:
                     print('No summary element found.')
                     break
-        if single_summary: self.driver.quit()
+        if single_summary:
+            self.driver.quit()
+            print('[INFO] Selenium driver was terminated.')
         return {id: text}
 
     def extract_multiple_summaries(self, ids: list[str]):
         summaries = dict()
         for id in ids:
-            summaries[id] = self.extract_summary(id, single_summary=False)
+            summaries.update(self.extract_summary(id, single_summary=False))
             self.driver.delete_all_cookies()
-
         self.driver.quit()
+        print('[INFO] Selenium driver was terminated.')
         return summaries
 

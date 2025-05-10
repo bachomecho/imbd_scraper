@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
-from extractor.extractor import SetExtractStrategy, IndividualExtractor, FileExtractor, IDListExtractor
+from extractor.extractor import SetExtractStrategy, IndividualExtractor, FileExtractor, IDListExtractor, PlaylistExtractor
 from selenium_scraping.imdb_custom_parser_selenium import SeleniumScraper
 from imdb import Cinemagoer
 from extractor.translator import DeeplTranslator
@@ -70,9 +70,9 @@ class ExtractorApp:
         for widget in self.input_frame.winfo_children():
             widget.destroy()
 
-        if selection == "Individual ID":
-            input_entry = ttk.Entry(self.input_frame, width=40)
-            input_entry.pack()
+        if selection == "Individual ID" or selection == 'Playlist':
+            self.input_entry = ttk.Entry(self.input_frame, width=40)
+            self.input_entry.pack()
         elif selection == "File with IDs":
             self.file_path_var = tk.StringVar()
             file_entry = ttk.Entry(self.input_frame, textvariable=self.file_path_var, width=30)
@@ -138,10 +138,19 @@ class ExtractorApp:
                 imdb=imdb,
                 file=input_value)
             )
+        elif selection == "Playlist":
+            input_value = self.input_entry.get()
+            strat.set_extract_method(PlaylistExtractor(
+                selenium_scraper=selenium_scraper,
+                translator=translator,
+                imdb=imdb,
+                playlist_url=input_value)
+            )
+            print(strat)
         else:
             input_value = ""
 
-        result = strat.extract()
+        result: list[dict] = strat.extract()
         self.EXTRACTED_MOVIES = result
 
         # Show result in output box
