@@ -18,12 +18,34 @@ class ExtractorApp:
         edit_db_tab = ttk.Frame(self.notebook)
         self.notebook.add(extract_tab, text='Extract movie data', padding=20)
         self.notebook.add(edit_db_tab, text='Edit database', padding=20)
-
+        """
+        Extract tab
+        """
         # Dropdown extract tab
-        options = ["Individual ID", "File with IDs"]
+        options = ["Individual ID", "File with IDs", "Playlist"]
         self.selected_option_strat = tk.StringVar(value=options[0])
         self.dropdown = ttk.OptionMenu(extract_tab, self.selected_option_strat, options[0], *options, command=self.update_input_field)
         self.dropdown.pack(pady=10)
+
+        # Placeholder for dynamic input (text or file)
+        self.input_frame = tk.Frame(extract_tab)
+        self.input_frame.pack()
+        self.input_entry = ttk.Entry(self.input_frame, width=40)
+        self.input_entry.pack()
+
+        # Extract Button
+        self.extract_button = ttk.Button(extract_tab, text="Extract", command=self.run_extraction)
+        self.extract_button.pack(pady=10)
+        self.db_button = ttk.Button(extract_tab, text="Insert into DB", command=self.insert_into_db)
+        self.db_button.pack(pady=10, padx=10)
+
+        # Output Box
+        self.output_box = tk.Text(extract_tab, height=5, width=50, state='disabled')
+        self.output_box.pack(pady=10)
+
+        """
+        Edit tab
+        """
         # Dropdown edit db tab
         db_keys = [
             "title",
@@ -46,21 +68,6 @@ class ExtractorApp:
         self.dropdown_edit_db.pack(pady=10)
         self.edit_db_button = ttk.Button(edit_db_tab, text="Extract and update database", command=self.run_update)
         self.edit_db_button.pack(pady=20)
-
-
-        # Placeholder for dynamic input (text or file)
-        self.input_frame = tk.Frame(extract_tab)
-        self.input_frame.pack()
-
-        # Extract Button
-        self.extract_button = ttk.Button(extract_tab, text="Extract", command=self.run_extraction)
-        self.extract_button.pack(pady=10)
-        self.db_button = ttk.Button(extract_tab, text="Insert into DB", command=self.insert_into_db)
-        self.db_button.pack(pady=10, padx=10)
-
-        # Output Box
-        self.output_box = tk.Text(extract_tab, height=5, width=50, state='disabled')
-        self.output_box.pack(pady=10)
 
         # Initialize input field
         self.update_input_field(options[0])
