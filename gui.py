@@ -92,11 +92,11 @@ class ExtractorApp:
         if filepath:
             self.file_path_var.set(filepath)
 
-    def insert_into_db(self, ext_movs):
+    def insert_into_db(self):
         db_con = DBConnection('movies.db')
-        if not ext_movs:
+        if not self.EXTRACTED_MOVIES:
             return
-        db_con.insert_data(ext_movs)
+        db_con.insert_data(self.EXTRACTED_MOVIES)
         db_con.close_connection()
 
     def run_update(self):
