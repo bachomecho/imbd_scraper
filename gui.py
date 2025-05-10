@@ -5,7 +5,13 @@ from selenium_scraping.imdb_custom_parser_selenium import SeleniumScraper
 from imdb import Cinemagoer
 from extractor.translator import DeeplTranslator
 from extractor.database import DBConnection
-import os
+import os, json
+
+def box_logging(box, movies):
+    box.config(state='normal')
+    box.delete(1.0, tk.END)
+    box.insert(tk.END, f"{movies}")
+    box.config(state='disabled')
 
 class ExtractorApp:
     def __init__(self, root):
@@ -36,6 +42,8 @@ class ExtractorApp:
         # Extract Button
         self.extract_button = ttk.Button(extract_tab, text="Extract", command=self.run_extraction)
         self.extract_button.pack(pady=10)
+        self.load_backup = ttk.Button(extract_tab, text="Load last backup", command=self.load_backup)
+        self.load_backup.pack(pady=10)
         self.db_button = ttk.Button(extract_tab, text="Insert into DB", command=self.insert_into_db)
         self.db_button.pack(pady=10, padx=10)
 
@@ -99,6 +107,17 @@ class ExtractorApp:
         db_con.insert_data(self.EXTRACTED_MOVIES)
         db_con.close_connection()
 
+    def load_backup(self):
+        movies = None
+        with open('last_extraction_backup.json', 'r') as backup:
+            movies = json.load(backup)
+        if movies:
+            self.EXTRACTED_MOVIES = movies
+            box_logging(self.output_box, movies)
+            print('[+] Backup has been loaded')
+        else:
+            print('[-] Backup is either empty or did not load properly')
+
     def run_update(self):
         db_con = DBConnection('movies.db')
         all_ids = [id[0] for id in db_con.retrieve_all_ids()]
@@ -158,14 +177,14 @@ class ExtractorApp:
             input_value = ""
 
         result: list[dict] = strat.extract()
+        """
+        create a file containing results in case the db operations fail and you want to load a backup of the extracted data
+        """
+        with open('last_extraction_backup.json', 'w') as backup:
+            json.dump(result, backup)
         self.EXTRACTED_MOVIES = result
 
-        # Show result in output box
-        self.output_box.config(state='normal')
-        self.output_box.delete(1.0, tk.END)
-        self.output_box.insert(tk.END, f"{result}")
-        self.output_box.config(state='disabled')
-
+        box_logging(self.output_box, result)
         return result
 
 if __name__ == "__main__":
