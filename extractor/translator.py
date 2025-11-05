@@ -10,5 +10,4 @@ class DeeplTranslator:
         return cls._instance
 
     def initialize_translator(self):
-        load_dotenv('../.env')
         return deepl.Translator(os.getenv("DEEPL_API_KEY"))

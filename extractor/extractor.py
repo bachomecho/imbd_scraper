@@ -6,15 +6,24 @@ from abc import ABC, abstractmethod
 from extractor.movie import Movie
 
 class ExtractorMeta(ABC):
-    def __init__(self, selenium_scraper: SeleniumScraper, translator: DeeplTranslator, imdb, extract_sole_field=None):
+    def __init__(self, selenium_scraper: SeleniumScraper, translator: DeeplTranslator, extract_sole_field=None):
         self.selenium_scraper = selenium_scraper
-        self.imdb = imdb
         self.translator = translator.initialize_translator()
         self.extract_sole_field = extract_sole_field
 
     @abstractmethod
     def get_movie_ids(self) -> list[str]:
         pass
+
+    def get_movie_info_omdb(self, imdb_id):
+        url = f"http://www.omdbapi.com/?i={imdb_id}&apikey={os.getenv('OMDB_API_KEY')}&plot=full"
+        response = requests.get(url)
+        data = response.json()
+        if data.get('Response') == 'True':
+            return data
+        else:
+            print(f"Error retrieving data from omdb api: {data.get('Error')}")
+            return None
 
     def extract(self) -> list[dict]:
         extracted_movies = []
@@ -25,16 +34,16 @@ class ExtractorMeta(ABC):
                 if self.extract_sole_field:
                     print(f'extracting {self.extract_sole_field} for {movie_id}..')
                 try:
-                    movie = self.imdb.get_movie_main(movie_id)['data']
+                    movie = self.get_movie_info_omdb(movie_id)
                     movie_obj = Movie(
                         imdb_id=movie_id,
-                        titles=(movie['akas'], movie['localized title']),
-                        director=movie['director'],
-                        duration=movie['runtimes'],
-                        release_year=movie['year'],
-                        genre=movie['genres'],
-                        rating=movie['rating'],
-                        plot=plots_map[movie_id],
+                        title=movie['Title'],
+                        director=movie['Director'],
+                        duration=movie['Runtime'],
+                        release_year=movie['Year'],
+                        genre=movie['Genre'],
+                        rating=movie['imdbRating'],
+                        plot=movie['Plot'],
                         translator=self.translator
                     )
                     extracted_movies.append(movie_obj.get_info())
@@ -46,16 +55,16 @@ class ExtractorMeta(ABC):
                 if self.extract_sole_field:
                     print(f'extracting {self.extract_sole_field} for {movie_id}..')
                 try:
-                    movie = self.imdb.get_movie_main(movie_id)['data']
+                    movie = self.get_movie_info_omdb(movie_id)
                     movie_obj = Movie(
                         imdb_id=movie_id,
-                        titles=(movie['akas'], movie['localized title']),
-                        director=movie['director'],
-                        duration=movie['runtimes'],
-                        release_year=movie['year'],
-                        genre=movie['genres'],
-                        rating=movie['rating'],
-                        plot=None,
+                        title=movie['Title'],
+                        director=movie['Director'],
+                        duration=movie['Runtime'],
+                        release_year=movie['Year'],
+                        genre=movie['Genre'],
+                        rating=movie['imdbRating'],
+                        plot=movie['Plot'],
                         translator=self.translator
                     )
                     extracted_movies.append(movie_obj.get_info())
@@ -66,8 +75,8 @@ class ExtractorMeta(ABC):
 
 
 class FileExtractor(ExtractorMeta):
-    def __init__(self, selenium_scraper: SeleniumScraper, translator: DeeplTranslator, imdb, file):
-        super().__init__(selenium_scraper, translator, imdb)
+    def __init__(self, selenium_scraper: SeleniumScraper, translator: DeeplTranslator, file):
+        super().__init__(selenium_scraper, translator)
         self.file = file
 
     def get_movie_ids(self):
@@ -80,8 +89,8 @@ class FileExtractor(ExtractorMeta):
         return super().extract()
 
 class PlaylistExtractor(ExtractorMeta):
-    def __init__(self, selenium_scraper, translator, imdb, playlist_url):
-        super().__init__(selenium_scraper, translator, imdb)
+    def __init__(self, selenium_scraper, translator, playlist_url):
+        super().__init__(selenium_scraper, translator)
         self.playlist_url = playlist_url
     """
     Extracts movie ids from movies packed in a playlist from imdb
@@ -96,15 +105,15 @@ class PlaylistExtractor(ExtractorMeta):
         p_html = self.get_playlist_html()
         soup = BeautifulSoup(p_html, 'html.parser')
         links_with_ids = soup.find_all('a', class_ = 'ipc-title-link-wrapper', href=True)
-        return [link['href'].split('/')[2].lstrip('tt') for link in links_with_ids]
+        return [link['href'].split('/')[2] for link in links_with_ids]
 
     def extract(self):
         return super().extract()
 
 class IndividualExtractor(ExtractorMeta):
-    def __init__(self, selenium_scraper, translator, imdb, movie_id):
-        super().__init__(selenium_scraper, translator, imdb)
-        self.movie_id = movie_id.strip('tt')
+    def __init__(self, selenium_scraper, translator, movie_id: str):
+        super().__init__(selenium_scraper, translator)
+        self.movie_id = movie_id
 
     def get_movie_ids(self):
         return [self.movie_id]
@@ -113,8 +122,8 @@ class IndividualExtractor(ExtractorMeta):
         return super().extract()
 
 class IDListExtractor(ExtractorMeta):
-    def __init__(self, selenium_scraper, translator, imdb, extract_sole_field, id_list):
-        super().__init__(selenium_scraper, translator, imdb, extract_sole_field)
+    def __init__(self, selenium_scraper, translator, extract_sole_field, id_list):
+        super().__init__(selenium_scraper, translator, extract_sole_field)
         self.id_list = id_list
     def get_movie_ids(self):
         assert isinstance(self.id_list, list), 'Argument id_list is not a list'
