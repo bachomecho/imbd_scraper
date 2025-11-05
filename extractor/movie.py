@@ -38,11 +38,11 @@ class Movie:
             plot={self.plot},
         )"""
 
-    def _generate_thumbnail_name(self):
+    def _generate_thumbnail_name(self, title: str):
         thumb_chars_to_replace = ('*', '#', '!', ',')
         for char in thumb_chars_to_replace:
-            self.title = self.title.replace(char, '')
-        return f"{self.title.replace(' ', '_').replace('-', '_').lower()}_{self.duration}_{self.release_year}"
+            title = title.replace(char, '')
+        return f"{title.replace(' ', '_').replace('-', '_').lower()}_{self.duration}_{self.release_year}"
 
     def download_thumbnail(self, url: str, thumbnail_dir: str):
         thumbnail_path = os.path.join(thumbnail_dir, f'{self._generate_thumbnail_name()}.jpg')
@@ -65,11 +65,12 @@ class Movie:
                 setattr(self, field, translated_value)
 
     def get_info(self) -> dict:
+        original_title = self.title
         self._translate_fields()
         return {
             'imdb_id': self.imdb_id,
             'title': self.title,
-            'thumbnail_name': self._generate_thumbnail_name(),
+            'thumbnail_name': self._generate_thumbnail_name(original_title),
             'video_id': None,
             'site': None,
             'video_id_1': None,
