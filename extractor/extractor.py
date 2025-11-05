@@ -83,7 +83,7 @@ class FileExtractor(ExtractorMeta):
         if '.txt' not in self.file: self.file = self.file + '.txt'
         with open(self.file, 'r') as file:
             movie_links = list(map(str.strip, file.readlines()))
-        return [link.split('tt')[-1].strip('/') for link in movie_links]
+        return movie_links
 
     def extract(self):
         return super().extract()
