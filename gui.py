@@ -120,19 +120,56 @@ class ExtractorApp:
         content = self.output_box.get(1.0, tk.END).strip()
         if not content:
             messagebox.showwarning("No data", "No extracted data available to insert.")
+            db_con.close_connection()
             return
         try:
             parsed = json.loads(content)
         except json.JSONDecodeError as e:
             messagebox.showerror("JSON error", f"Could not parse JSON from output box:\n{e}")
+            db_con.close_connection()
             return
         if not isinstance(parsed, list):
             messagebox.showwarning("Invalid format", "Expected a JSON array of movie objects.")
+            db_con.close_connection()
             return
-        self.EXTRACTED_MOVIES = parsed
+
+        # ensure every item has an imdb_id
+        if not all(isinstance(item, dict) and item.get('imdb_id') for item in parsed):
+            messagebox.showwarning("Missing imdb_id", "One or more entries are missing 'imdb_id'. Please fix before inserting.")
+            db_con.close_connection()
+            return
+
+        # check for duplicates in DB
+        existing_rows = db_con.retrieve_all_ids()
+        existing_ids = set(row[0] for row in existing_rows)
+        parsed_ids = [item['imdb_id'] for item in parsed]
+        duplicates = [mid for mid in parsed_ids if mid in existing_ids]
+
+        if duplicates:
+            sample = ", ".join(duplicates[:10])
+            more = f"... (+{len(duplicates)-10} more)" if len(duplicates) > 10 else ""
+            answer = messagebox.askyesno(
+                "Duplicate entries",
+                f"Found {len(duplicates)} duplicates in the database (e.g. {sample}{more}).\n\n"
+                "Skip duplicates and insert the remaining entries? (Yes = skip duplicates; No = cancel)"
+            )
+            if not answer:
+                db_con.close_connection()
+                return
+            # filter out duplicates and insert remaining
+            filtered = [item for item in parsed if item['imdb_id'] not in existing_ids]
+            if not filtered:
+                messagebox.showinfo("Nothing to insert", "All entries were duplicates. No data inserted.")
+                db_con.close_connection()
+                return
+            to_insert = filtered
+        else:
+            to_insert = parsed
+
+        self.EXTRACTED_MOVIES = to_insert
         db_con.insert_data(self.EXTRACTED_MOVIES)
         db_con.close_connection()
-        messagebox.showinfo("Success", "Data inserted into database.")
+        messagebox.showinfo("Success", f"Inserted {len(self.EXTRACTED_MOVIES)} record(s) into database.")
 
     def load_backup(self):
         movies = None
@@ -209,6 +246,40 @@ class ExtractorApp:
         """
         with open('last_extraction_backup.json', 'w', encoding='utf-8') as backup:
             json.dump(result, backup, ensure_ascii=False, indent=2)
+
+        # check for duplicate movies in db after extraction of new movie data
+        try:
+            db_con = DBConnection('movies.db')
+            existing_rows = db_con.retrieve_all_ids()
+            existing_ids = set(row[0] for row in existing_rows)
+            dup_items = [
+                (item.get('imdb_id'), item.get('title', '<no title>'))
+                for item in result
+                if item.get('imdb_id') in existing_ids
+            ]
+
+            if dup_items:
+                sample = ", ".join(f"{mid} ({title})" for mid, title in dup_items[:10])
+                more = f"... (+{len(dup_items)-10} more)" if len(dup_items) > 10 else ""
+                keep_or_remove = messagebox.askyesno(
+                    "Duplicate entries found",
+                    f"Found {len(dup_items)} extracted entries that already exist in the database "
+                    f"(e.g. {sample}{more}).\n\n"
+                    "Remove these duplicates from the extracted results before showing/inserting? "
+                    "(Yes = remove; No = keep)"
+                )
+                if keep_or_remove:
+                    filtered = [item for item in result if item.get('imdb_id') not in existing_ids]
+                    removed = len(result) - len(filtered)
+                    result = filtered
+                    messagebox.showinfo("Duplicates removed", f"Removed {removed} duplicate(s) from extracted results.")
+        except Exception as e:
+            # non-fatal: just print and continue with results
+            print(f"[!] Could not check DB for duplicates: {e}")
+        finally:
+            try: db_con.close_connection()
+            except: pass
+
         self.EXTRACTED_MOVIES = result
 
         box_logging(self.output_box, result)
