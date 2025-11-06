@@ -1,13 +1,14 @@
 import deepl
 import os
-from dotenv import load_dotenv
 
 class DeeplTranslator:
-    _instance = None
-    def __new__(cls):
-        if not cls._instance:
-            return super(DeeplTranslator, cls).__new__(cls)
-        return cls._instance
-
-    def initialize_translator(self):
-        return deepl.Translator(os.getenv("DEEPL_API_KEY"))
+    _translator = None
+    @classmethod
+    def get_translator(cls):
+        if cls._translator is None:
+            api_key = os.getenv("DEEPL_API_KEY")
+            cls._translator = deepl.Translator(api_key)
+        return cls._translator
+    @classmethod
+    def initialize_translator(cls):
+        return cls.get_translator()

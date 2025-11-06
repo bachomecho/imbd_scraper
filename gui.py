@@ -209,32 +209,20 @@ class ExtractorApp:
 
     def run_extraction(self):
         selection = self.selected_option_strat.get()
-        selenium_scraper = None
-        translator = DeeplTranslator()
         input_value = None
         strat = SetExtractStrategy(None)
         if selection == "Individual ID":
             input_value = self.input_entry.get()
             assert input_value.startswith('tt'), 'Please give full imdb movie id.'
-            strat.set_extract_method(IndividualExtractor(
-                selenium_scraper=selenium_scraper,
-                translator=translator,
-                movie_id=input_value
-                )
+            strat.set_extract_method(IndividualExtractor(movie_id=input_value)
             )
         elif selection == "File with IDs":
             input_value = self.file_path_var.get()
-            strat.set_extract_method(FileExtractor(
-                selenium_scraper=selenium_scraper,
-                translator=translator,
-                file=input_value)
+            strat.set_extract_method(FileExtractor(file=input_value)
             )
         elif selection == "Playlist":
             input_value = self.input_entry.get()
-            strat.set_extract_method(PlaylistExtractor(
-                selenium_scraper=selenium_scraper,
-                translator=translator,
-                playlist_url=input_value)
+            strat.set_extract_method(PlaylistExtractor(playlist_url=input_value)
             )
             print(strat)
         else:
