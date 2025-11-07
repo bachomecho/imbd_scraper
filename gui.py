@@ -276,24 +276,71 @@ class ExtractorApp:
 
     def copy_title_year(self):
         movies = self.parse_json_from_output_box()
-        print('testing copy title year', movies)
         if not movies:
             messagebox.showwarning("No movie", "No extracted movie available. Run an extraction first.")
             return
-        movie = movies[0] if isinstance(movies, list) else movies
-        title = movie.get('title', '')
-        year = movie.get('release_year', '')
-        combo = f"{title} {year} филм".strip()
-        if not title:
-            messagebox.showwarning("Missing title", "Selected movie has no title to copy.")
+
+        # Convert to list if single movie
+        movies_list = movies if isinstance(movies, list) else [movies]
+
+        if not movies_list:
+            messagebox.showwarning("No movies", "No movies found in the data.")
             return
-        try:
-            self.root.clipboard_clear()
-            self.root.clipboard_append(combo)
-            self.root.update()  # ensure clipboard is available to other apps on Windows
-            messagebox.showinfo("Copied", f"Copied to clipboard:\n{combo}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Could not copy to clipboard:\n{e}")
+
+        # Create popup dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Select Movie")
+        dialog.geometry("400x150")
+        dialog.transient(self.root)  # Make dialog modal
+        dialog.grab_set()
+
+        label = ttk.Label(dialog, text="Select movie to copy:")
+        label.pack(pady=10)
+
+        # Create combobox with movie titles
+        movie_var = tk.StringVar()
+        combo_values = []
+        title_to_movie = {}
+
+        for movie in movies_list:
+            title = movie.get('title', '')
+            year = movie.get('release_year', '')
+            display_text = f"{title} ({year})" if year else title
+            if title:
+                combo_values.append(display_text)
+                title_to_movie[display_text] = movie
+
+        if not combo_values:
+            dialog.destroy()
+            messagebox.showwarning("Missing titles", "None of the movies have titles.")
+            return
+
+        combo = ttk.Combobox(dialog, textvariable=movie_var, values=combo_values, width=50)
+        combo.set(combo_values[0])  # first movie default
+        combo.pack(pady=10, padx=10)
+
+        def on_copy():
+            selected = movie_var.get()
+            if selected in title_to_movie:
+                movie = title_to_movie[selected]
+                title = movie.get('title', '')
+                year = movie.get('release_year', '')
+                combo_text = f"{title} {year} филм".strip()
+
+                try:
+                    self.root.clipboard_clear()
+                    self.root.clipboard_append(combo_text)
+                    self.root.update()
+                    messagebox.showinfo("Copied", f"Copied to clipboard:\n{combo_text}")
+                    dialog.destroy()
+                except Exception as e:
+                    messagebox.showerror("Error", f"Could not copy to clipboard:\n{e}")
+            else:
+                messagebox.showwarning("Error", "Please select a movie first.")
+
+        # copy button
+        copy_btn = ttk.Button(dialog, text="Copy", command=on_copy)
+        copy_btn.pack(pady=10)
 
 if __name__ == "__main__":
     root = tk.Tk()
