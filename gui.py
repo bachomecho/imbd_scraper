@@ -65,10 +65,6 @@ class ExtractorApp:
         vsb.pack(side='right', fill='y')
         hsb.pack(side='bottom', fill='x')
 
-        """
-        Edit tab
-        """
-        # Dropdown edit db tab
         db_keys = [
             "title",
             "thumbnail_name",
@@ -114,27 +110,30 @@ class ExtractorApp:
         if filepath:
             self.file_path_var.set(filepath)
 
-    def insert_into_db(self):
-        db_con = DBConnection('movies.db')
-        # If user edited the box, try to parse JSON from it
+    def parse_json_from_output_box(self):
         content = self.output_box.get(1.0, tk.END).strip()
         if not content:
-            messagebox.showwarning("No data", "No extracted data available to insert.")
-            db_con.close_connection()
-            return
+            messagebox.showwarning("No data", "No extracted data available.")
+            return None
         try:
-            parsed = json.loads(content)
+            return json.loads(content)
         except json.JSONDecodeError as e:
             messagebox.showerror("JSON error", f"Could not parse JSON from output box:\n{e}")
+            return None
+
+    def insert_into_db(self):
+        db_con = DBConnection('movies.db')
+        parsed_json_content = self.parse_json_from_output_box()
+        if parsed_json_content is None:
             db_con.close_connection()
             return
-        if not isinstance(parsed, list):
+        if not isinstance(parsed_json_content, list):
             messagebox.showwarning("Invalid format", "Expected a JSON array of movie objects.")
             db_con.close_connection()
             return
 
         # ensure every item has an imdb_id
-        if not all(isinstance(item, dict) and item.get('imdb_id') for item in parsed):
+        if not all(isinstance(item, dict) and item.get('imdb_id') for item in parsed_json_content):
             messagebox.showwarning("Missing imdb_id", "One or more entries are missing 'imdb_id'. Please fix before inserting.")
             db_con.close_connection()
             return
@@ -142,7 +141,7 @@ class ExtractorApp:
         # check for duplicates in DB
         existing_rows = db_con.retrieve_all_ids()
         existing_ids = set(row[0] for row in existing_rows)
-        parsed_ids = [item['imdb_id'] for item in parsed]
+        parsed_ids = [item['imdb_id'] for item in parsed_json_content]
         duplicates = [mid for mid in parsed_ids if mid in existing_ids]
 
         if duplicates:
@@ -157,14 +156,14 @@ class ExtractorApp:
                 db_con.close_connection()
                 return
             # filter out duplicates and insert remaining
-            filtered = [item for item in parsed if item['imdb_id'] not in existing_ids]
+            filtered = [item for item in parsed_json_content if item['imdb_id'] not in existing_ids]
             if not filtered:
                 messagebox.showinfo("Nothing to insert", "All entries were duplicates. No data inserted.")
                 db_con.close_connection()
                 return
             to_insert = filtered
         else:
-            to_insert = parsed
+            to_insert = parsed_json_content
 
         self.EXTRACTED_MOVIES = to_insert
         db_con.insert_data(self.EXTRACTED_MOVIES)
