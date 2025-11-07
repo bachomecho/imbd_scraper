@@ -53,6 +53,8 @@ class ExtractorApp:
         self.load_backup.pack(side='left', padx=(0,10))
         self.db_button = ttk.Button(controls_frame, text="Insert into DB", command=self.insert_into_db)
         self.db_button.pack(side='left', padx=(0,10))
+        self.image_search_button = ttk.Button(controls_frame, text="Copy 'title year' to clipboard", command=self.copy_title_year)
+        self.image_search_button.pack(side='left', padx=(0,10))
 
         # Output Box with scrollbar (editable)
         output_frame = tk.Frame(extract_tab)
@@ -271,6 +273,27 @@ class ExtractorApp:
 
         box_logging(self.output_box, result)
         return result
+
+    def copy_title_year(self):
+        movies = self.parse_json_from_output_box()
+        print('testing copy title year', movies)
+        if not movies:
+            messagebox.showwarning("No movie", "No extracted movie available. Run an extraction first.")
+            return
+        movie = movies[0] if isinstance(movies, list) else movies
+        title = movie.get('title', '')
+        year = movie.get('release_year', '')
+        combo = f"{title} {year} филм".strip()
+        if not title:
+            messagebox.showwarning("Missing title", "Selected movie has no title to copy.")
+            return
+        try:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(combo)
+            self.root.update()  # ensure clipboard is available to other apps on Windows
+            messagebox.showinfo("Copied", f"Copied to clipboard:\n{combo}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not copy to clipboard:\n{e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
