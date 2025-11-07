@@ -32,6 +32,9 @@ class ExtractorMeta(ABC):
                 print(f'extracting {self.extract_sole_field} for {movie_id}..')
             try:
                 movie = self.get_movie_info_omdb(movie_id)
+                if movie['Type'] != 'movie':
+                    print(f'skipping {movie_id}, not a movie')
+                    continue
                 movie_obj = Movie(
                     imdb_id=movie_id,
                     title=movie['Title'],
@@ -66,9 +69,6 @@ class PlaylistExtractor(ExtractorMeta):
     def __init__(self, playlist_url):
         super().__init__()
         self.playlist_url = playlist_url
-    """
-    Extracts movie ids from movies packed in a playlist from imdb
-    """
     def get_playlist_html(self):
         assert 'imdb.com' in self.playlist_url, "A full url is required"
         user_agent = os.getenv('USER_AGENT')
