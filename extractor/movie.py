@@ -57,7 +57,7 @@ class Movie:
             del res
 
     def _translate_fields(self):
-        translate_fields = ['title', 'director', 'genre', 'plot']
+        translate_fields = ['title', 'director', 'genre']
         for field in translate_fields:
             self_field_value = getattr(self, field)
             if self_field_value:

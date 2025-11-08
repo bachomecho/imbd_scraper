@@ -27,12 +27,12 @@ class ExtractorApp:
 
         extract_tab = ttk.Frame(self.notebook)
         edit_db_tab = ttk.Frame(self.notebook)
+        plot_edit_tab = ttk.Frame(self.notebook)  # New tab for plot editing
         self.notebook.add(extract_tab, text='Extract movie data', padding=20)
         self.notebook.add(edit_db_tab, text='Edit database', padding=20)
-        """
-        Extract tab
-        """
-        # Dropdown extract tab
+        self.notebook.add(plot_edit_tab, text='Edit Plots', padding=20)  # Add new tab
+
+        # Extract tab
         options = ["Individual ID", "File with IDs", "Playlist"]
         self.selected_option_strat = tk.StringVar(value=options[0])
         self.dropdown = ttk.OptionMenu(extract_tab, self.selected_option_strat, options[0], *options, command=self.update_input_field)
@@ -88,6 +88,21 @@ class ExtractorApp:
         self.dropdown_edit_db.pack(pady=10)
         self.edit_db_button = ttk.Button(edit_db_tab, text="Extract and update database", command=self.run_update)
         self.edit_db_button.pack(pady=20)
+
+        # plot edit tab
+        self.plot_movies = []
+        self.plot_movie_var = tk.StringVar()
+        self.plot_dropdown = ttk.Combobox(plot_edit_tab, textvariable=self.plot_movie_var, state="readonly", width=60)
+        self.plot_dropdown.pack(pady=10, padx=10)
+
+        self.copy_plot_btn = ttk.Button(plot_edit_tab, text="Copy Original Plot", command=self.copy_original_plot)
+        self.copy_plot_btn.pack(pady=5)
+
+        self.plot_edit_box = tk.Text(plot_edit_tab, height=10, width=80, wrap='word')
+        self.plot_edit_box.pack(pady=10, padx=10)
+
+        self.overwrite_plot_btn = ttk.Button(plot_edit_tab, text="Overwrite Plot in Extracted Data", command=self.overwrite_plot)
+        self.overwrite_plot_btn.pack(pady=5)
 
         # Initialize input field
         self.update_input_field(options[0])
@@ -171,21 +186,6 @@ class ExtractorApp:
         db_con.insert_data(self.EXTRACTED_MOVIES)
         db_con.close_connection()
         messagebox.showinfo("Success", f"Inserted {len(self.EXTRACTED_MOVIES)} record(s) into database.")
-
-    def load_backup(self):
-        movies = None
-        try:
-            with open('last_extraction_backup.json', 'r', encoding='utf-8') as backup:
-                movies = json.load(backup)
-        except Exception as e:
-            messagebox.showerror("Error", f"Could not load backup: {e}")
-            return
-        if movies:
-            self.EXTRACTED_MOVIES = movies
-            box_logging(self.output_box, movies)
-            print('[+] Backup has been loaded')
-        else:
-            print('[-] Backup is either empty or did not load properly')
 
     def run_update(self):
         db_con = DBConnection('movies.db')
@@ -271,8 +271,102 @@ class ExtractorApp:
 
         self.EXTRACTED_MOVIES = result
 
+        # Update plot tab dropdown with new movies
+        self.update_plot_tab_movies(result)
+
         box_logging(self.output_box, result)
         return result
+
+    def load_backup(self):
+        movies = None
+        try:
+            with open('last_extraction_backup.json', 'r', encoding='utf-8') as backup:
+                movies = json.load(backup)
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not load backup: {e}")
+            return
+        if movies:
+            self.EXTRACTED_MOVIES = movies
+            self.update_plot_tab_movies(movies)
+            box_logging(self.output_box, movies)
+            print('[+] Backup has been loaded')
+        else:
+            print('[-] Backup is either empty or did not load properly')
+
+    def update_plot_tab_movies(self, movies):
+        if not movies:
+            self.plot_movies = []
+            self.plot_dropdown['values'] = []
+            self.plot_movie_var.set('')
+            return
+        self.plot_movies = movies if isinstance(movies, list) else [movies]
+        titles = []
+        for m in self.plot_movies:
+            title = m.get('title', '')
+            year = m.get('release_year', '')
+            display = f"{title} ({year})" if year else title
+            titles.append(display)
+        self.plot_dropdown['values'] = titles
+        if titles:
+            self.plot_movie_var.set(titles[0])
+        else:
+            self.plot_movie_var.set('')
+
+    def copy_original_plot(self):
+        # Copy the original English plot to clipboard and to the edit box
+        idx = self.plot_dropdown.current()
+        if idx == -1 or not self.plot_movies:
+            messagebox.showwarning("No movie", "No movie selected.")
+            return
+        movie = self.plot_movies[idx]
+        plot = movie.get('plot', '')
+        if not plot:
+            messagebox.showwarning("No plot", "Selected movie has no plot.")
+            return
+        try:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(plot)
+            self.root.update()
+            self.plot_edit_box.delete(1.0, tk.END)
+            self.plot_edit_box.insert(tk.END, plot)
+            messagebox.showinfo("Copied", "Original plot copied to clipboard and edit box.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not copy plot:\n{e}")
+
+    def overwrite_plot(self):
+        idx = self.plot_dropdown.current()
+        if idx == -1 or not self.plot_movies:
+            messagebox.showwarning("No movie", "No movie selected.")
+            return
+        new_plot = self.plot_edit_box.get(1.0, tk.END).strip()
+        if not new_plot:
+            messagebox.showwarning("No plot", "Edited plot is empty.")
+            return
+        movie = self.plot_movies[idx]
+        imdb_id = movie.get('imdb_id')
+        updated = False
+        if self.EXTRACTED_MOVIES:
+            for m in self.EXTRACTED_MOVIES:
+                if m.get('imdb_id') == imdb_id:
+                    m['plot'] = new_plot
+                    updated = True
+                    break
+        if updated:
+            box_logging(self.output_box, self.EXTRACTED_MOVIES)
+            messagebox.showinfo("Success", "Plot updated in extracted data.")
+        else:
+            messagebox.showwarning("Not found", "Could not find movie to update.")
+
+    def parse_json_from_output_box(self):
+        content = self.output_box.get(1.0, tk.END).strip()
+        if not content:
+            messagebox.showwarning("No data", "No extracted data available.")
+            return None
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as e:
+            messagebox.showerror("JSON error", f"Could not parse JSON from output box:\n{e}")
+            return None
 
     def copy_title_year(self):
         movies = self.parse_json_from_output_box()
