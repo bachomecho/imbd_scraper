@@ -1,9 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-from extractor.extractor import SetExtractStrategy, IndividualExtractor, FileExtractor, IDListExtractor, PlaylistExtractor
-from selenium_scraping.imdb_custom_parser_selenium import SeleniumScraper
-from imdb import Cinemagoer
-from extractor.translator import DeeplTranslator
+from extractor.extractor import SetExtractStrategy, IndividualExtractor, FileExtractor, PlaylistExtractor
 from extractor.database import DBConnection
 import os, json
 from dotenv import load_dotenv
@@ -26,10 +23,8 @@ class ExtractorApp:
         self.notebook.pack(expand=True, fill='both', padx=10, pady=10)
 
         extract_tab = ttk.Frame(self.notebook)
-        edit_db_tab = ttk.Frame(self.notebook)
         plot_edit_tab = ttk.Frame(self.notebook)  # New tab for plot editing
         self.notebook.add(extract_tab, text='Extract movie data', padding=20)
-        self.notebook.add(edit_db_tab, text='Edit database', padding=20)
         self.notebook.add(plot_edit_tab, text='Edit Plots', padding=20)  # Add new tab
 
         # Extract tab
@@ -49,8 +44,6 @@ class ExtractorApp:
         controls_frame.pack(pady=10, fill='x')
         self.extract_button = ttk.Button(controls_frame, text="Extract", command=self.run_extraction)
         self.extract_button.pack(side='left', padx=(0,10))
-        self.load_backup = ttk.Button(controls_frame, text="Load last backup", command=self.load_backup)
-        self.load_backup.pack(side='left', padx=(0,10))
         self.db_button = ttk.Button(controls_frame, text="Insert into DB", command=self.insert_into_db)
         self.db_button.pack(side='left', padx=(0,10))
         self.image_search_button = ttk.Button(controls_frame, text="Copy 'title year' to clipboard", command=self.copy_title_year)
@@ -66,28 +59,6 @@ class ExtractorApp:
         self.output_box.pack(side='left', fill='both', expand=True)
         vsb.pack(side='right', fill='y')
         hsb.pack(side='bottom', fill='x')
-
-        db_keys = [
-            "title",
-            "thumbnail_name",
-            "video_id",
-            "site",
-            "video_id_1",
-            "site_1",
-            "gledambg_video_id",
-            "multi_part",
-            "duration",
-            "release_year",
-            "genre",
-            "rating",
-            "director",
-            "plot",
-        ]
-        self.selected_option_db_key = tk.StringVar(value=db_keys[0])
-        self.dropdown_edit_db= ttk.OptionMenu(edit_db_tab, self.selected_option_db_key, db_keys[0], *db_keys, command=self.update_input_field)
-        self.dropdown_edit_db.pack(pady=10)
-        self.edit_db_button = ttk.Button(edit_db_tab, text="Extract and update database", command=self.run_update)
-        self.edit_db_button.pack(pady=20)
 
         # plot edit tab
         self.plot_movies = []
@@ -187,27 +158,6 @@ class ExtractorApp:
         db_con.close_connection()
         messagebox.showinfo("Success", f"Inserted {len(self.EXTRACTED_MOVIES)} record(s) into database.")
 
-    def run_update(self):
-        db_con = DBConnection('movies.db')
-        all_ids = [id[0] for id in db_con.retrieve_all_ids()]
-        assert isinstance(all_ids, list), 'all_ids is not a list'
-        selection = self.selected_option_db_key.get()
-        imdb = Cinemagoer()
-        selenium_scraper = SeleniumScraper() if selection == 'plot' else None
-        translator = DeeplTranslator()
-        strat = SetExtractStrategy(IDListExtractor(
-                selenium_scraper=selenium_scraper,
-                translator=translator,
-                imdb=imdb,
-                extract_sole_field=selection,
-                id_list=all_ids,
-            )
-        )
-        result = strat.extract()
-        update_data = [{'imdb_id': d['imdb_id'], selection:d[selection]} for d in result]
-        db_con.update_field_for_all_movies(selection, update_data)
-        db_con.close_connection()
-
     def run_extraction(self):
         selection = self.selected_option_strat.get()
         input_value = None
@@ -276,22 +226,6 @@ class ExtractorApp:
 
         box_logging(self.output_box, result)
         return result
-
-    def load_backup(self):
-        movies = None
-        try:
-            with open('last_extraction_backup.json', 'r', encoding='utf-8') as backup:
-                movies = json.load(backup)
-        except Exception as e:
-            messagebox.showerror("Error", f"Could not load backup: {e}")
-            return
-        if movies:
-            self.EXTRACTED_MOVIES = movies
-            self.update_plot_tab_movies(movies)
-            box_logging(self.output_box, movies)
-            print('[+] Backup has been loaded')
-        else:
-            print('[-] Backup is either empty or did not load properly')
 
     def update_plot_tab_movies(self, movies):
         if not movies:
